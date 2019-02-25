@@ -1,0 +1,1 @@
+//# sourceMappingURL=/build/es2018/types/window-factory.js.map

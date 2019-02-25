@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--***************************************************************
+****************************************************************
+****************************************************************
+
+Part of WIKIVR, a Wikipedia-based virtual reality experiment. 
+
+Author: Matthew Ellis 
+   
+All rights reserved, 2018. 
+
+****************************************************************
+***************************************************************
+***************************************************************-->
+<html>
+  <head>
+    <title>EINSTEIN</title>
+    <meta   name="einstein" content="Lost in Einstein">
+    <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script> 
+    <script src="https://unpkg.com/aframe-animation-component@^5.1.2/dist/aframe-animation-component.min.js"></script>
+    <script src="./bundle.js"></script>
+    <script src="./main.js"></script>
+    <script src="./lettergroup.js"></script>
+    <script src="./colorwheel.js"></script>
+  </head>
+  <body id="index" bgcolor="#000000">
+    <a-scene>
+      <a-assets id="assets"></a-assets>
+      <a-entity id="musicvr" musicscene></a-entity>
+    </a-scene>
+  </body>
+</html>

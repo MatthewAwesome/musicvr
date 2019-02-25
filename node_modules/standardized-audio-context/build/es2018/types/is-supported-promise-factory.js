@@ -1,0 +1,1 @@
+//# sourceMappingURL=/build/es2018/types/is-supported-promise-factory.js.map

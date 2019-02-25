@@ -1,0 +1,26 @@
+{
+  "name": "musicvr",
+  "version": "1.0.0",
+  "description": "Visualize notes and chords as color, in realtime, to any song!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatthewAwesome/musicvr.git"
+  },
+  "author": "MatthewAwesome",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MatthewAwesome/musicvr/issues"
+  },
+  "homepage": "https://github.com/MatthewAwesome/musicvr#readme",
+  "dependencies": {
+    "autocorrelation": "0.0.5",
+    "d3-peaks": "0.0.1",
+    "lpf": "^1.0.0",
+    "pitchfinder": "^2.0.9",
+    "web-audio-beat-detector": "^7.0.30"
+  }
+}
