@@ -166,7 +166,7 @@ AFRAME.registerSystem('musicvr',{
 	  this.filter.gain.setValueAtTime(0, this.context.currentTime);
 
 	  // Load the audio: 
-	  this.audioLoader.load( 'https://raw.githubusercontent.com/MatthewAwesome/musicvr/master/docs/assets/audio/boogieOn.mp3', this.audioloadfcn); 
+	  this.audioLoader.load( 'https://raw.githubusercontent.com/MatthewAwesome/musicvr/master/docs/assets/swept.mp3', this.audioloadfcn); 
 
 	  /*Some other audio stuff: 
 		  gainNode.gain.setValueAtTime(0.5,context.currentTime); 
