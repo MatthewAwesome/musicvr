@@ -222,9 +222,7 @@ AFRAME.registerSystem('musicvr',{
 	  this.filter.gain.setValueAtTime(0, this.context.currentTime);
 
 	  // Load the audio: 
-    // https://drive.google.com/uc?export=view&id=1OkHTW_Yzi6OED0lLd-gAKjQKq-O4h2uI
-    // https://drive.google.com/file/d/1OkHTW_Yzi6OED0lLd-gAKjQKq-O4h2uI/view?usp=sharing
-	  this.audioLoader.load('https://drive.google.com/uc?export=view&id=1OkHTW_Yzi6OED0lLd-gAKjQKq-O4h2uI', this.audioloadfcn); 
+	  this.audioLoader.load( 'assets/audio/dc502.mp3', this.audioloadfcn); 
 
     this.tocs = 0; 
     this.even = false; 
