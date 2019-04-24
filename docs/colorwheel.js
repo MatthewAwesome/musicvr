@@ -15,7 +15,7 @@ AFRAME.registerComponent('colorwheel',{
 	    this.el.appendChild(sector);
 		}
 		this.el.setAttribute('rotation',{x:0,y:0,z:165}); 
-		this.el.setAttribute('position',{x:0,y:0,z:-7.8})
+		this.el.setAttribute('position',{x:0,y:0,z:0.2})
 	}, 
 });
 

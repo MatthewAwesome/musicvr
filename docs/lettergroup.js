@@ -12,7 +12,7 @@ AFRAME.registerComponent('lettergroup',{
 	    this.el.appendChild(textEl);
 		}
 		this.el.setAttribute('rotation',{x:0,y:180,z:0}); 
-		this.el.setAttribute('position',{x:0,y:0,z:-8})
+		this.el.setAttribute('position',{x:0,y:0,z:0})
 	}, 
 });
 

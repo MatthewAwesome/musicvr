@@ -6,11 +6,12 @@
 /*************************
 	PITCH FINDER STUFF
 *************************/
-const yinParams       = {threshold:0.2,probabilityThreshold:0.3}; 
+const yinParams       = {threshold:0.1,probabilityThreshold:0.1}; 
 const detectPitch     = new audioz.Pitchfinder.YIN(yinParams);
 const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:14,maxFrequency:4200,sensitivity:0.5}); 
 const quantInterval = {tempo:300,quantization:4}; 
-console.log(audioz.BeatDetector); 
+
+// console.log(audioz.BeatDetector); 
 
 var detectors = [detectPitch,amdfDetector]; 
 // an array of note ids: 
@@ -39,7 +40,10 @@ audioz.lpf.smoothing  = 0.4;
 
 // Our base frequency: 
 const A4 = 440; 
-// Specify C0 (units here are Hz)
+// Specify C0.
+// Why -4.75? C0 is 4.75 octaves down from A4.C0 -> C4 is 5 octaves. A4<--C4 is 3 half steps, or 0.25 octaves 
+// 5-0.25 is 4.75.
+// The expression belowgives C0 in units of Hz.
 const C0 = A4 * Math.pow(2.0, -4.75); 
 
 // FFT STUFF: 
@@ -48,13 +52,14 @@ const noteFFTSize   = 2**13;
 const fftLength     = fftSize / 2;  
 const noteFFTLength = noteFFTSize / 2; 
 
-// FREQUENCY STUFF: 
+// THE ABOVE DETECTORS AREN'T EMPLOYED JUST YET, BUT IN FUTURE ITERATIONS, THEY MAY BE: 
+// We use this variables below to create a note-spectrum, in which we match frequencies with their correspondent notes.
 const minFrequency = 14; 
 const maxFrequency = 4200; 
 var freqArray      = getFreqArray(fftLength); 
 var freqObj        = freqNoteMatch(freqArray,minFrequency,maxFrequency,C0); 
 
-// Get C's and use them to build our pitch detector array: 
+// Get C's and use them to build our pitch detector array: One pitch detector per octave. 
 var C_notes = freqObj.pureToneArray.filter( 
   (x,index) => { if(index % 12 == 0){ return x }
 })
@@ -62,18 +67,20 @@ var C_notes = freqObj.pureToneArray.filter(
   x => x * Math.pow(2,(-20)/1200)
 ); 
 
-// Build an arry of pitch detectors, on detector per ocatve: 
+// Defining some detector variables:  
 var detectorArray = []; 
 var detectorParams = {
   sensitivity:0.5, 
   minFrequency:14, 
   maxFrequency:4200,
 }
+// Building the detectors array: 
 for(let i = 0; i < C_notes.length-1; i++){
   detectorParams.minFrequency = C_notes[i]; 
   detectorParams.maxFrequency = C_notes[i+1];
   detectorArray.push(audioz.Pitchfinder.AMDF(detectorParams)); 
 }
+
 
 
 /************************
@@ -93,14 +100,63 @@ AFRAME.registerComponent('musicscene',{
 	  // A cirle to get some vertices:
 	  var circ12 = await new THREE.CircleGeometry(8,12); 
 	  var toneInfo = await toneStuff(circ12.vertices); 
+    console.log(toneInfo);
 	  var noteCircle = document.createElement('a-entity');
 	  noteCircle.setAttribute('lettergroup',{toneInfo:toneInfo});
 	  noteCircle.setAttribute('id','lettergroup'); 
 	 	var colorWheel = await document.createElement('a-entity');
 	  await colorWheel.setAttribute('colorwheel',{toneInfo:toneInfo});
-	  colorWheel.setAttribute('id','colorwheel'); 
-		this.el.appendChild(colorWheel); 
+	  colorWheel.setAttribute('id','colorwheel');
+    var noteLines = document.createElement('a-entity');
+    noteLines.setAttribute('string-group',{fftSize:noteFFTSize,toneInfo:toneInfo});   
+		noteLines.setAttribute('id','stringgroup'); 
+    this.el.appendChild(colorWheel); 
 	  this.el.appendChild(noteCircle); 
+    this.el.appendChild(noteLines)
+    this.el.setAttribute('position',{x:0,y:2.5,z:-14});
+
+    // Let's make a particle object: 
+    var particleObject = {}; 
+    particleObject.presest = 'default'; 
+    particleObject.texture = "./assets/particle.jpg"
+    particleObject.positionSpread = {x:0,y:0,z:0}; 
+    particleObject.velocityValue = {x:5,y:5,z:0}; 
+    particleObject.velocitySpread = {x:10,y:10,z:0};;  
+    particleObject.rotationAxis = 'x'; 
+    particleObject.accelerationValue = {x:10,y:10,z:0}; 
+    particleObject.accelerationSpread = {x:-10,y:-10,z:0}; 
+    particleObject.type = 3; 
+    particleObject.rotationAngleSpread = Math.PI; 
+
+    // Trying the sprite object: 
+    var spriteObject = {}; 
+    spriteObject.texture = "./assets/particle.jpg"; 
+    spriteObject.radialType = "circlexy"; 
+    spriteObject.color = 'red';
+    spriteObject.radialPosition = "11.0";
+    spriteObject.spawnRate = "20.0";  
+    spriteObject.radialAcceleration = "0.08"; 
+    spriteObject.particleSize = "500.0"; 
+    spriteObject.lifeTime = "10"; 
+
+    var beatsPerMs = (104/60) / 1000; // bmp / 60s/m = beats per second / 1000 ms/2 = BEATS PER MILLISECOND.  
+    // Next we need to make a four beats! 
+    var beatsInFourS = 4/beatsPerMs; 
+    console.log(beatsInFourS);
+    // Making a particle system: This should be neat: 
+    var particleSystem = document.createElement('a-entity'); 
+    // particleSystem.setAttribute('particle-system',particleObject);
+    particleSystem.setAttribute('sprite-particles',spriteObject); 
+    particleSystem.setAttribute('geometry',{primitive:'torus',radius:7}); 
+    particleSystem.setAttribute('material',{color:'black',transparent:true,opacity:0});  
+    particleSystem.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
+    particleSystem.setAttribute('animation_rad',{property:'geometry.radius',to:8,from:7,dur:beatsInFourS/4,loop:true,easing:'linear',dir:'alternate'})
+    particleSystem.setAttribute('id','particleSystem'); 
+    // We are going to attached our particle system to a ring: 
+    this.el.appendChild(particleSystem); 
+    // this.el.setAttribute('animation',{property:'position',from:{x:0,y:2,z:-12},to:{x:0,y:3,z:-12},dir:'alternate',loop:true,dur:600})
+    // Add the animation: 
+
 	}
 })
 
@@ -166,8 +222,10 @@ AFRAME.registerSystem('musicvr',{
 	  this.filter.gain.setValueAtTime(0, this.context.currentTime);
 
 	  // Load the audio: 
-	  this.audioLoader.load( 'https://raw.githubusercontent.com/MatthewAwesome/musicvr/master/docs/assets/swept.mp3', this.audioloadfcn); 
+	  this.audioLoader.load( 'https://drive.google.com/file/d/1OkHTW_Yzi6OED0lLd-gAKjQKq-O4h2uI/view?usp=sharing', this.audioloadfcn); 
 
+    this.tocs = 0; 
+    this.even = false; 
 	  /*Some other audio stuff: 
 		  gainNode.gain.setValueAtTime(0.5,context.currentTime); 
 		  analyser.smoothingTimeConstant = 0.8;
@@ -232,27 +290,52 @@ AFRAME.registerSystem('musicvr',{
 
 	  }
 	  this.noteAudio = noteAudio;
-
+    console.log(this.el); 
+    // Our system will handle animations, too: 
+    this.el.addEventListener('animationcomplete',this.animator); 
+    // Add a analyzer component to the system: 
 	  // END OF INIT
 	}, 
 
 	// Tick: 
 	tock: async function(t,delta_t){
 		if(this.playing == true && t-this.t_of_last_scan > 200 ){
+      this.tocs += 1; 
+      this.even = !this.even; 
 			// Get data fram analyser and toss it into S(t) and f(t) arrays. 
 			this.analyser.getByteFrequencyData(this.fftArray); 
-      this.analyser.getFloatTimeDomainData(this.timeFloats); 
-      // Use the date to detect pitches: 
-      var pitches = await audioz.Pitchfinder.frequencies( detectPitch, this.timeFloats, quantInterval);
+      var ss = this.analyser.getFloatTimeDomainData(this.timeFloats);
+      // console.log(this.timeFloats);
+        // Use the date to detect pitches: 
+      var pitches = await audioz.Pitchfinder.frequencies( [detectPitch,amdfDetector], this.timeFloats, quantInterval);
+      // console.log(pitches);
       // See if the detected pitch (in Hz) matches a note:
       var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,25);
+      // We can do a beat detector...and use this to update 
+      console.log(this.source.buffer);
+      console.log(this.source);
+
+      // try{
+      //   var bpm = await audioz.BeatDetector.guess(this.source.buffer,this.source.context.currentTime,10); 
+      //   var apm = await audioz.BeatDetector.analyze(this.source.buffer,this.source.context.currentTime,10); 
+      //   console.log(bpm);
+      //   console.log(apm);
+      // }
+      // catch(err){
+      //   console.log(err); 
+      // }
+
+      // console.log(freqObj);
+      // console.log(convertedPitches);
       // Did we find a note?
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
+        console.log(detectedNote)
       	// Get arrays of entities that correspond to note components: 
       	var letters = this.sceneEl.querySelector('#lettergroup').childNodes; 
       	var pieslices = this.sceneEl.querySelector('#colorwheel').childNodes; 
+        var noteStrings = this.sceneEl.querySelector('#stringgroup').childNodes; 
       	// Loop through the arrays: 
       	for(let i = 0; i<letters.length; i++){
       		// Handling the letters first: 
@@ -260,39 +343,85 @@ AFRAME.registerSystem('musicvr',{
       		// Is this our detected note?
       		if(letterId == detectedNote){
       			letters[i].setAttribute('letter-component',{detected:true}); 
-      			letters[i].removeAttribute('animation'); 
-      			letters[i].setAttribute('animation',{property:'text.opacity',to:1,dur:100,easing:'easeInSine',repeat:0})
+      			letters[i].removeAttribute('animation__letterfade'); 
+      			letters[i].setAttribute('animation__letterbrighten',{property:'text.opacity',to:0.8,dur:250,easing:'easeInSine',})
       		}
-      		else if(letters[i].getAttribute('letter-component').detected == true){ 
-      			letters[i].removeAttribute('animation'); 
-      			letters[i].setAttribute('animation',{property:'text.opacity',to:0.2,dur:2000,easing:'easeOutSine',repeat:0});
+      		else if(letters[i].getAttribute('letter-component').detected == true && letterId != detectedNote ){ 
+      			console.log('fading letter'); 
+            letters[i].removeAttribute('animation__letterbrighten' ); 
+      			letters[i].setAttribute('animation__letterfade',{property:'text.opacity',to:0.2,dur:800,delay:250,easing:'easeOutSine'});
       			letters[i].setAttribute('letter-component',{detected:false}); 
       		}
+          else{
+            letters[i].removeAttribute('animation__letterbrighten' ); 
+            letters[i].setAttribute('animation__letterfade',{property:'text.opacity',to:0.2,dur:800,delay:250,easing:'easeOutSine'});
+            letters[i].setAttribute('letter-component',{detected:false});             
+          }
       		// And now the pie-slices: 
       		var sliceId = pieslices[i].getAttribute('class');
       		if(sliceId == detectedNote){
+            pieslices[i].removeAttribute('animation__slicefade'); 
       			pieslices[i].setAttribute('pieslice',{detected:true}); 
-      			pieslices[i].removeAttribute('animation'); 
-      			pieslices[i].setAttribute('animation',{property:'material.opacity',to:1,dur:100,easing:'easeInSine',repeat:0})
+      			pieslices[i].setAttribute('animation__slicebrighten',{property:'material.opacity',to:0.8,dur:250,easing:'easeInSine'})
       		}
-      		else if(pieslices[i].getAttribute('pieslice').detected == true){ 
-      			pieslices[i].removeAttribute('animation'); 
-      			pieslices[i].setAttribute('animation',{property:'material.opacity',to:0.15,dur:2000,easing:'easeOutSine',repeat:0});
+      		else if(pieslices[i].getAttribute('pieslice').detected == true && sliceId != detectedNote){ 
+            console.log('fading slice');
+      			pieslices[i].removeAttribute('animation__slicebrighten'); 
+      			pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
       			pieslices[i].setAttribute('pieslice',{detected:false}); 
-      		}      			
-      	}
+      		}
+          else{
+            console.log('fading slice, alt');
+            pieslices[i].removeAttribute('animation__slicebrighten'); 
+            pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
+            pieslices[i].setAttribute('pieslice',{detected:false}); 
+          }     
+          var stringId = noteStrings[i].getAttribute('class'); 
+          if(stringId == detectedNote){
+            noteStrings[i].setAttribute('visible',true); 
+          }		
+      	}; 
+        // console.log(nodes);  
+      }
+      // We can move the thing according to beat: 
+      if(this.tocs % 3 == 0){
+        // set the animation 
+        // var aa = absAvg(this.timeFloats); 
+        // console.log(aa);
+        // var y_shift = 2 + (aa * 10); 
+        // var newTo = {X:0,y:2+y_shift,z:-12}; 
+        // var musicEl = this.sceneEl.querySelector('#musicvr'); 
+        // musicEl.setAttribute('animation',{to:newTo}); 
+      }
+      if(this.playing == true){
+                // get the string group: 
+        var sg = this.sceneEl.querySelector('#stringgroup'); 
+        var nodes = sg.childNodes; 
+        var aa = absAvg(this.timeFloats); 
+        for(let k = 0; k<nodes.length; k++){
+          var theta = k * Math.PI/12; 
+          var obj = nodes[k].getObject3D('liner'); 
+          for(let ii = 0; ii < this.timeFloats.length; ii++){
+            var index = ii; 
+            obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index]; 
+            obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index] * Math.sin(theta); 
+          }
+          obj.geometry.verticesNeedUpdate = true; 
+        }
       }
 		}
 	},
-
 	pitchScan: async function(){
 		//do some scanning for pitches. 
 	}, 
 
+  // A function to load audio such that our parent class (the system) inherits 
+  // data from the audio buffer and distrubutes said data to things like our analyser, 
+  // i.e. this.analyser. 
 	audioloadfcn: async function( buffer ) {
 		// bind this: 
     this.channel0 = buffer.getChannelData(0);
-    this.channel1 = buffer.getChannelData(1);
+    // this.channel1 = buffer.getChannelData(1);
     this.source = this.context.createBufferSource();
     this.source.buffer = buffer;
     this.source.loop = true;
@@ -310,12 +439,32 @@ AFRAME.registerSystem('musicvr',{
     this.timeFloats = await new Float32Array(this.analyser.frequencyBinCount);  
     this.fftCount = this.analyser.frequencyBinCount;  
     this.playing = true; 
+  }, 
+
+  // A function that workd with animations. Once the note group fades to completion, 
+  // we hide the line. That way things will appear in greater sychrony...a good thing!
+
+  animator: function(e){
+    if(e.detail.name == 'animation__slicefade'){
+      // Which note is fading away; 
+      var target_class = "." + e.target.getAttribute('class');
+      // Hid away the waveform line
+      console.log('faded'); 
+      this.sceneEl.querySelector('#stringgroup').querySelector(target_class).setAttribute('visible',false); 
+    }
   }
 }); 
 
 /*********************************************
 	SOME UTILITY FUNCTIONS IN THE CELLAR HERE
 *********************************************/
+
+// Get the absolute-value-averaged of an array: 
+function absAvg(arr){
+  // arr is a typed array! 
+  var abs_avg = arr.reduce((a,b) => (a+Math.abs(b))) / arr.length;
+  return abs_avg; 
+}
 
 function toneStuff(verts){
 
@@ -366,7 +515,6 @@ function toneStuff(verts){
   // Rearranging the tone-info Object. ( we reverse twice... can we get away with not reversing at all?)
 
   // Removing the first tone: 
-
   var firstTone = toneInfo.slice(0,1); 
 
   // Reversing the order of elements [1]-[11]:
@@ -375,7 +523,7 @@ function toneStuff(verts){
   // Tacking elements [11]-[1] back onto element [0]
   toneInfo = firstTone.concat(toneInfo); 
 
-  // tone info does not actually contain any objects. Just data needed to make object. 
+  // tone info does not actually contain any scene objects. Just data needed to make the objects (e.g. vertices signifying position) 
   return toneInfo
 }
 
@@ -383,7 +531,7 @@ function toneStuff(verts){
 // A frequency axis for our FFTs. Just stepping through frequencies here.. 
 function getFreqArray(fftLength){
   const minFreq   = 0; 
-  const maxFreq   = 44100 / 2; 
+  const maxFreq   = 44100 / 2; // nyquist...our audio is commonly sampled at 44.1kHZ, max resolvable frequency is sample frequency divided by 2. 
   const freqStep  = maxFreq / (fftLength + 1);
   var freqArray   = []; 
   for( let i = 0; i < fftLength; i ++){
@@ -392,26 +540,6 @@ function getFreqArray(fftLength){
   return freqArray
 }
 
-
-// Creates array of tonal frequencies that correspond to the musical alphabet. 
-function freqToNotes(C_0,max,min){
-  // We want this to be 'all the frequencies'. Index % 12 will yield the pitch according to its alphabetic identifier. 
-  const lastStep = Math.floor(12.0 * Math.log2(max / C_0)); 
-  // Container for our notes: 
-  var noteArray = [C_0];
-  // Iteratively build the note array: 
-  for(let i = 1; i <= lastStep; i++){
-    var noteFreq = Math.fround(C_0 * Math.pow(2.0, i / 12.0)); 
-    noteArray.push(noteFreq); 
-  }
-  // Handling the min: 
-  if(min){
-    var firstGoodIndex = noteArray.findIndex( x => x >= min); 
-    noteArray = noteArray.slice(firstGoodIndex); 
-  }
-  // Return the damn thing: 
-  return noteArray 
-}
 
 // Matches frequencies (+/- 1%) to their tonal counterparts. 
 function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
@@ -457,7 +585,8 @@ function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
     
     /**
       Our frequency array is linearly spaced. And the relationship between frequency and steps is
-      and exponential one, of  base a: 
+      and exponential one, of  base a. (exponential is based on sequentual mutiplication; linear is 
+      sequential addition). 
 
       fn = f0 * (a)n 
       
@@ -469,19 +598,21 @@ function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
       In non-math terms, each octave is a 2 ** x  Hz wide, consisting of 12 'bins' of increasing width width
       x being an integer.
 
-
       Oh, and on a similar note. If we wish to make all the octaves of equal length, we need to space our frequency 
       axis logarithmically, which sort-of 'compensates' for the exponential spacing of notes WRT frequency. 
     **/
 
     // Accordingly, we can convert frequencies into n's for a given a 'central frequency' (i.e. f0)
     // via the freqToTone() function.  
+
     var n  = freqToTone (freqArray[i],C_0); 
 
     // Once we have an n, slap it on the freqHues array. 
+    // I call them hues here because we can think in terms of color. the remainder of the 'hue', or n, value
+    // with respect to 12 will yield a color corresponding to one our of 12 (western chromatic tones). 
     freqHues.push(n); 
 
-    // Update if needed: 
+    // This is updated everytime we switch to another tone: 
     if(freqArray[i] >= tMax && toneIndex < toneArray.length-1){
       toneIndex += 1;
       let f      = toneArray[toneIndex]; 
@@ -507,7 +638,7 @@ function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
     }
   }
 
-  // Prepare output: 
+  // Loop through frequency array is done; prepare output!
   var freqObj   = {}; 
 
   // Below is an array of frequencies, the trimmed freqArray!
@@ -519,7 +650,9 @@ function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
   //Below is the frequency array mapped to 'intervalic steps', or n-values. 
   freqObj.hues  = freqHues; 
 
-  // Determine the octave start points: 
+  // Determine the octave start points. 
+
+  // THIS ARRAY IS SLICED BECAUSE? _____________! (WE THIS NEEDS A RESOLUTION)
   octaveStarts = octaveStarts.slice(2);
   freqObj.octaveStarts = octaveStarts; 
 
@@ -534,6 +667,25 @@ function freqNoteMatch(freqArray,minFrequency,maxFrequency,C_0){
   return freqObj; 
 }
 
+// Creates array of tonal frequencies that correspond to the musical alphabet. 
+function freqToNotes(C_0,max,min){
+  // We want this to be 'all the frequencies'. Index % 12 will yield the pitch according to its alphabetic identifier. 
+  const lastStep = Math.floor(12.0 * Math.log2(max / C_0)); 
+  // Container for our notes: 
+  var noteArray = [C_0];
+  // Iteratively build the note array: 
+  for(let i = 1; i <= lastStep; i++){
+    var noteFreq = Math.fround(C_0 * Math.pow(2.0, i / 12.0)); 
+    noteArray.push(noteFreq); 
+  }
+  // Handling the min, which, by the way, is an optional argument. 
+  if(min){
+    var firstGoodIndex = noteArray.findIndex( x => x >= min); 
+    noteArray = noteArray.slice(firstGoodIndex); 
+  }
+  // Return the array of notes: 
+  return noteArray 
+}
 
 // Transforming frequency to hue. 
 function freqToTone(f_n,C_0){
@@ -542,19 +694,19 @@ function freqToTone(f_n,C_0){
   return n; 
 }
 
-// Function to transform the fftOutput. 
+// Function to transform the fftOutput; low frequencies seem to dominate the higher ones. 
 function powerScaler(pwr,freq){
   pwr = Math.log(freq) * pwr /(Math.log(2) * 6); // Math.log(freq) // 4; 
   return pwr;  
 }
 
-// A function to pit the notes against eachother: 
+// A function to pit the notes against eachother, fft style, not pitch finder: 
 function getNotePowers(fftArray,freqObj,minFftIndex){
 
   // The output array: 
   var powerArray = []; 
 
-  // Looping through the octaves: 
+  // Looping through the octaves: j corresponds to 'octave number'
   for(let j = 0; j < freqObj.octaveStarts.length-1; j++){
 
     // We interatively build the output up. One octave at a time: 
@@ -579,7 +731,7 @@ function getNotePowers(fftArray,freqObj,minFftIndex){
       if(noteBandStart != -1 && noteBandEnd != -1){
 
         // Shift the indices 'up' according to the 'padding'. 
-        noteBandStart += octavePadding; 
+        noteBandStart += octavePadding; // SHOULD THIS BE A MINUS? WE WANT TO PUFFER EACH SIFHT, RIGHT?
         noteBandEnd   += octavePadding; 
 
         // The before and affter FFTs: 
@@ -608,7 +760,6 @@ function getNotePowers(fftArray,freqObj,minFftIndex){
         else{
           var powProm = notePower * (1-(surroundPower/(noteProminence+surroundPower)));   
         } 
-
       }
       // In the event we do not....
       else{
@@ -618,7 +769,7 @@ function getNotePowers(fftArray,freqObj,minFftIndex){
         console.log('Note not found in octave, ',j) 
       }
 
-      // A 'note-object': tone of 0 --> A, 1 --> A#, ETC. Is this really necessary? 
+      // I CHANGED THIS A BIT, A DOES NOT CORRESPOND TO WHAT WE HAVE HERE... 
       var noteObject = {"tone":i,"prominence":noteProminence,"power":notePower,'powProm':powProm}; 
       // Putting the note-object together: 
       notePowers.push(noteObject); 
