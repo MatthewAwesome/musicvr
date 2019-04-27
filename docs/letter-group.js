@@ -32,7 +32,7 @@ function createTextEl (info) {
   textEl.setAttribute('material',{color:'#000',transparent:'true',opacity:0.5}); 
   textEl.setAttribute('text',{value:str,color:color,side:'double',align:'center',baseline:'center',font:'dejavu',wrapCount:str.length+2});;  
   textEl.setAttribute('side', 'double');
-  textEl.setAttribute('scale',{x: 12, y: 12, z: 12})
+  textEl.setAttribute('scale',{x: 12, y: 12, z: 1})
   textEl.setAttribute('position', {x: 0, y: 0, z: 0});
   textEl.setAttribute('rotation', {x: 0, y: 180, z: 0});
   textEl.setAttribute('class',info.noteid); 

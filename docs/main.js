@@ -82,7 +82,9 @@ for(let i = 0; i < C_notes.length-1; i++){
 }
 
 
-
+var junkCircle = new THREE.CircleGeometry(10,fftLength); 
+junkCircle.vertices.shift();
+var junkVerts = junkCircle.vertices; 
 /************************
  A COMPONENT TO HOUSE OUR MUSIC GEOMETRIES. 
  SCENE CAN DO THIS EQUALLY WELL, WANT TO KEEP THINGS MODULAR,THOUGH. 
@@ -116,47 +118,45 @@ AFRAME.registerComponent('musicscene',{
     this.el.setAttribute('position',{x:0,y:2.5,z:-14});
 
     // Let's make a particle object: 
-    var particleObject = {}; 
-    particleObject.presest = 'default'; 
-    particleObject.texture = "./assets/particle.jpg"
-    particleObject.positionSpread = {x:0,y:0,z:0}; 
-    particleObject.velocityValue = {x:5,y:5,z:0}; 
-    particleObject.velocitySpread = {x:10,y:10,z:0};;  
-    particleObject.rotationAxis = 'x'; 
-    particleObject.accelerationValue = {x:10,y:10,z:0}; 
-    particleObject.accelerationSpread = {x:-10,y:-10,z:0}; 
-    particleObject.type = 3; 
-    particleObject.rotationAngleSpread = Math.PI; 
-
-    // Trying the sprite object: 
-    var spriteObject = {}; 
-    spriteObject.texture = "./assets/particle.jpg"; 
-    spriteObject.radialType = "circlexy"; 
-    spriteObject.color = 'red';
-    spriteObject.radialPosition = "11.0";
-    spriteObject.spawnRate = "20.0";  
-    spriteObject.radialAcceleration = "0.08"; 
-    spriteObject.particleSize = "500.0"; 
-    spriteObject.lifeTime = "10"; 
 
     var beatsPerMs = (104/60) / 1000; // bmp / 60s/m = beats per second / 1000 ms/2 = BEATS PER MILLISECOND.  
     // Next we need to make a four beats! 
     var beatsInFourS = 4/beatsPerMs; 
     console.log(beatsInFourS);
-    // Making a particle system: This should be neat: 
-    var particleSystem = document.createElement('a-entity'); 
-    // particleSystem.setAttribute('particle-system',particleObject);
-    particleSystem.setAttribute('sprite-particles',spriteObject); 
-    particleSystem.setAttribute('geometry',{primitive:'torus',radius:7}); 
-    particleSystem.setAttribute('material',{color:'black',transparent:true,opacity:0});  
-    particleSystem.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
-    particleSystem.setAttribute('animation_rad',{property:'geometry.radius',to:8,from:7,dur:beatsInFourS/4,loop:true,easing:'linear',dir:'alternate'})
-    particleSystem.setAttribute('id','particleSystem'); 
-    // We are going to attached our particle system to a ring: 
-    this.el.appendChild(particleSystem); 
-    // this.el.setAttribute('animation',{property:'position',from:{x:0,y:2,z:-12},to:{x:0,y:3,z:-12},dir:'alternate',loop:true,dur:600})
+
+  
+    
     // Add the animation: 
 
+    // Going to make the particle system just a rotating group of spheres. 
+
+
+
+    var lineCircle = document.createElement('a-entity'); 
+    var circleGeo  = await new THREE.CircleGeometry(10,fftLength); 
+    var lineGeo = new THREE.Geometry(); 
+    circleGeo.vertices.shift(); 
+    lineGeo.vertices = circleGeo.vertices; 
+    var lineMaterial = new THREE.LineBasicMaterial({color:'blue',linewidth:3}); 
+    lineMaterial.needsUpdate = true; 
+    var lineObject = new THREE.Line(lineGeo,lineMaterial);
+    lineObject.needsUpdate = true; 
+    lineCircle.setObject3D('linecircle',lineObject); 
+    lineCircle.setAttribute('id','line-circle'); 
+    lineCircle.setAttribute('line-circle',{verts:lineGeo.vertices}); 
+    lineCircle.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
+    
+    var ball = document.createElement('a-entity'); 
+    ball.setAttribute('geometry',{primitive:'sphere',radius:0.85}); 
+    ball.setAttribute('material',{color:'gray',transparent:true,opacity:0.5}); 
+    ball.setAttribute('position',{x:0,y:10,z:0}); 
+    lineCircle.appendChild(ball); 
+    this.el.appendChild(lineCircle); 
+    // Make a circle geometry and use for vertices: 
+
+    // Loop through the vertices, putting a sphere (or circle if spheres are too costly)
+
+    // Animate the group. 
 	}
 })
 
@@ -290,7 +290,7 @@ AFRAME.registerSystem('musicvr',{
 
 	  }
 	  this.noteAudio = noteAudio;
-    console.log(this.el); 
+    // console.log(this.el); 
     // Our system will handle animations, too: 
     this.el.addEventListener('animationcomplete',this.animator); 
     // Add a analyzer component to the system: 
@@ -312,18 +312,18 @@ AFRAME.registerSystem('musicvr',{
       // See if the detected pitch (in Hz) matches a note:
       var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,25);
       // We can do a beat detector...and use this to update 
-      console.log(this.source.buffer);
-      console.log(this.source);
+      // console.log(this.source.buffer);
+      // console.log(this.source);
 
-      // try{
-      //   var bpm = await audioz.BeatDetector.guess(this.source.buffer,this.source.context.currentTime,10); 
-      //   var apm = await audioz.BeatDetector.analyze(this.source.buffer,this.source.context.currentTime,10); 
-      //   console.log(bpm);
-      //   console.log(apm);
-      // }
-      // catch(err){
-      //   console.log(err); 
-      // }
+      try{
+        var bpm = await audioz.BeatDetector.guess(this.source.buffer,this.source.context.currentTime,10); 
+        var apm = await audioz.BeatDetector.analyze(this.source.buffer,this.source.context.currentTime,10); 
+        console.log(bpm);
+        console.log(apm);
+      }
+      catch(err){
+        console.log(err); 
+      }
 
       // console.log(freqObj);
       // console.log(convertedPitches);
@@ -331,7 +331,7 @@ AFRAME.registerSystem('musicvr',{
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
-        console.log(detectedNote)
+        // console.log(detectedNote)
       	// Get arrays of entities that correspond to note components: 
       	var letters = this.sceneEl.querySelector('#lettergroup').childNodes; 
       	var pieslices = this.sceneEl.querySelector('#colorwheel').childNodes; 
@@ -344,10 +344,10 @@ AFRAME.registerSystem('musicvr',{
       		if(letterId == detectedNote){
       			letters[i].setAttribute('letter-component',{detected:true}); 
       			letters[i].removeAttribute('animation__letterfade'); 
-      			letters[i].setAttribute('animation__letterbrighten',{property:'text.opacity',to:0.8,dur:250,easing:'easeInSine',})
+      			letters[i].setAttribute('animation__letterbrighten',{property:'text.opacity',to:0.8,dur:250,easing:'easeInSine',}); 
       		}
       		else if(letters[i].getAttribute('letter-component').detected == true && letterId != detectedNote ){ 
-      			console.log('fading letter'); 
+      			// console.log('fading letter'); 
             letters[i].removeAttribute('animation__letterbrighten' ); 
       			letters[i].setAttribute('animation__letterfade',{property:'text.opacity',to:0.2,dur:800,delay:250,easing:'easeOutSine'});
       			letters[i].setAttribute('letter-component',{detected:false}); 
@@ -363,15 +363,30 @@ AFRAME.registerSystem('musicvr',{
             pieslices[i].removeAttribute('animation__slicefade'); 
       			pieslices[i].setAttribute('pieslice',{detected:true}); 
       			pieslices[i].setAttribute('animation__slicebrighten',{property:'material.opacity',to:0.8,dur:250,easing:'easeInSine'})
-      		}
+      		              // we change color of wheel here: 
+            var material = pieslices[i].getAttribute('material'); 
+            var color = material.color.toString(16); 
+            color = "#" + color;
+            // var particleObj = await this.sceneEl.querySelector('#particleSystem'); 
+            // var children = await particleObj.childNodes; 
+            // for(let jj = 0; jj < children.length; jj++){
+            //   var childNode = await children[jj]; 
+            //   // console.log(childNode);
+            //   children[jj].setAttribute('material',{color:color}); 
+            //   // console.log(children[jj]);
+            //   // console.log('here!!!!!!')
+            // }
+            // console.log(children);
+
+          }
       		else if(pieslices[i].getAttribute('pieslice').detected == true && sliceId != detectedNote){ 
-            console.log('fading slice');
+            // console.log('fading slice');
       			pieslices[i].removeAttribute('animation__slicebrighten'); 
       			pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
       			pieslices[i].setAttribute('pieslice',{detected:false}); 
       		}
           else{
-            console.log('fading slice, alt');
+            // console.log('fading slice, alt');
             pieslices[i].removeAttribute('animation__slicebrighten'); 
             pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
             pieslices[i].setAttribute('pieslice',{detected:false}); 
@@ -395,16 +410,41 @@ AFRAME.registerSystem('musicvr',{
       }
       if(this.playing == true){
                 // get the string group: 
-        var sg = this.sceneEl.querySelector('#stringgroup'); 
+        var sg = await this.sceneEl.querySelector('#stringgroup'); 
+        var circleLine = await this.sceneEl.querySelector('#line-circle'); 
+        circleObj = await circleLine.getObject3D('linecircle'); 
         var nodes = sg.childNodes; 
+        // var particleNodes = particleGroup.childNodes; 
         var aa = absAvg(this.timeFloats); 
+        if(color){
+          var newColor = await new THREE.Color(color);
+          var hexer = newColor.getHex(); 
+          circleObj.material.color.setHex(hexer); 
+        }
+        // console.log(color);
         for(let k = 0; k<nodes.length; k++){
           var theta = k * Math.PI/12; 
+      
           var obj = nodes[k].getObject3D('liner'); 
+          var particleIndex = 0; 
+  
           for(let ii = 0; ii < this.timeFloats.length; ii++){
             var index = ii; 
             obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index]; 
             obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index] * Math.sin(theta); 
+            if(k == 0){
+              var steadyX = junkVerts[ii].x; 
+              var steadyY = junkVerts[ii].y;
+              var new_x = steadyX + steadyX*5*aa*this.timeFloats[index];  
+              var new_y = steadyY + steadyY*5*aa*this.timeFloats[index];  
+              circleObj.geometry.vertices[ii].x = new_x; 
+              circleObj.geometry.vertices[ii].y = new_y; 
+              // We want to shift our vertices according to time-floats: 
+            }
+
+          }
+          if(k == 0){
+            circleObj.geometry.verticesNeedUpdate = true; 
           }
           obj.geometry.verticesNeedUpdate = true; 
         }
@@ -434,11 +474,11 @@ AFRAME.registerSystem('musicvr',{
     this.analyser.connect(this.context.destination);
     this.analyser.fftSize = fftSize; 
     this.analyser.smoothingTimeConstant = 0.95;
-    this.fftArray = new Uint8Array(this.analyser.frequencyBinCount);
-    this.fftFloats = await new Float32Array(this.analyser.frequencyBinCount);  
+    this.fftArray   = new Uint8Array(this.analyser.frequencyBinCount);
+    this.fftFloats  = await new Float32Array(this.analyser.frequencyBinCount);  
     this.timeFloats = await new Float32Array(this.analyser.frequencyBinCount);  
-    this.fftCount = this.analyser.frequencyBinCount;  
-    this.playing = true; 
+    this.fftCount   = this.analyser.frequencyBinCount;  
+    this.playing    = true; 
   }, 
 
   // A function that workd with animations. Once the note group fades to completion, 
@@ -884,3 +924,43 @@ function typedConcat(arr1,arr2){
   c.set(arr2, arr1.length);
   return c
 }
+
+
+// Particle Stuff: 
+
+    // var particleObject = {}; 
+    // particleObject.preset = 'default'; 
+    // particleObject.texture = "./assets/particle.jpg"
+    // particleObject.positionSpread = {x:10,y:10,z:0}; 
+    // particleObject.velocityValue = {x:5,y:5,z:0}; 
+    // particleObject.velocitySpread = {x:10,y:10,z:0};;  
+    // particleObject.rotationAxis = 'x'; 
+    // particleObject.accelerationValue = {x:10,y:10,z:0}; 
+    // particleObject.accelerationSpread = {x:-10,y:-10,z:0}; 
+    // particleObject.type = 3; 
+    // particleObject.rotationAngleSpread = Math.PI/2; 
+    // particleObject.color = 'red';
+
+    // // Trying the sprite object: 
+    // var spriteObject = {}; 
+    // spriteObject.texture = "./assets/particle.jpg"; 
+    // spriteObject.radialType = "circlexy"; 
+    // spriteObject.color = 'red';
+    // spriteObject.radialPosition = "11.0";
+    // spriteObject.spawnRate = "20.0";  
+    // spriteObject.radialAcceleration = "0.08"; 
+    // spriteObject.particleSize = "500.0"; 
+    // spriteObject.lifeTime = "10"; 
+
+        // Making a particle system: This should be neat: 
+    // var particleSystem = document.createElement('a-entity'); 
+    // particleSystem.setAttribute('particle-system',particleObject);
+    // // particleSystem.setAttribute('sprite-particles',spriteObject); 
+    // particleSystem.setAttribute('geometry',{primitive:'torus',radius:7}); 
+    // particleSystem.setAttribute('material',{color:'black',transparent:true,opacity:0});  
+    // particleSystem.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
+    // particleSystem.setAttribute('animation_rad',{property:'geometry.radius',to:8,from:7,dur:beatsInFourS/4,loop:true,easing:'linear',dir:'alternate'})
+    // particleSystem.setAttribute('id','particleSystem'); 
+    // // We are going to attached our particle system to a ring: 
+    // this.el.appendChild(particleSystem); 
+

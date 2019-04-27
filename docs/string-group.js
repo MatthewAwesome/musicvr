@@ -1,6 +1,8 @@
 // Making a string group: 
 
 AFRAME.registerComponent('string-group',{
+	
+	// Schematize it: 
 	schema:{
 		fftSize:{default:0}, 
 		waveform:{default:[]},
