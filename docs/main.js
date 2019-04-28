@@ -8,7 +8,7 @@
 *************************/
 const yinParams       = {threshold:0.5,probabilityThreshold:0.5}; 
 const detectPitch     = new audioz.Pitchfinder.YIN(yinParams);
-const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.6}); 
+const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.3}); 
 const quantInterval = {tempo:500,quantization:4}; 
 
 // console.log(audioz.BeatDetector); 
