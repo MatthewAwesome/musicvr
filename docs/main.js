@@ -6,10 +6,10 @@
 /*************************
 	PITCH FINDER STUFF
 *************************/
-const yinParams       = {threshold:0.1,probabilityThreshold:0.1}; 
+const yinParams       = {threshold:0.5,probabilityThreshold:0.5}; 
 const detectPitch     = new audioz.Pitchfinder.YIN(yinParams);
-const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:14,maxFrequency:4200,sensitivity:0.5}); 
-const quantInterval = {tempo:300,quantization:4}; 
+const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.6}); 
+const quantInterval = {tempo:500,quantization:4}; 
 
 // console.log(audioz.BeatDetector); 
 
@@ -70,12 +70,12 @@ var C_notes = freqObj.pureToneArray.filter(
 // Defining some detector variables:  
 var detectorArray = []; 
 var detectorParams = {
-  sensitivity:0.5, 
-  minFrequency:14, 
+  sensitivity:0.4, 
+  minFrequency:32, 
   maxFrequency:4200,
 }
 // Building the detectors array: 
-for(let i = 1; i < C_notes.length-1; i++){
+for(let i = 0; i < C_notes.length-1; i++){
   detectorParams.minFrequency = C_notes[i]; 
   detectorParams.maxFrequency = C_notes[i+1];
   detectorArray.push(audioz.Pitchfinder.AMDF(detectorParams)); 
@@ -375,7 +375,7 @@ AFRAME.registerSystem('musicvr',{
 
 	// Tick: 
 	tock: async function(t,delta_t){
-		if(this.playing == true && t-this.t_of_last_scan > 200 ){
+		if(this.playing == true && t-this.t_of_last_scan > 200 && this.tocs % 2 == 0){
 			// Get data fram analyser and toss it into S(t) and f(t) arrays. 
 			this.analyser.getByteFrequencyData(this.fftArray); 
       var ss = this.analyser.getFloatTimeDomainData(this.timeFloats);
@@ -385,7 +385,7 @@ AFRAME.registerSystem('musicvr',{
       var pitches = await audioz.Pitchfinder.frequencies( detectors, this.timeFloats, quantInterval);
       // console.log(pitches);
       // See if the detected pitch (in Hz) matches a note:
-      var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,25);
+      var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,40);
       // We can do a beat detector...and use this to update 
       // console.log(this.source.buffer);
       // console.log(this.source);
@@ -393,11 +393,12 @@ AFRAME.registerSystem('musicvr',{
       // console.log(freqObj);
       // console.log(convertedPitches);
       // Did we find a note?
-      // console.log(pitches);
+      console.log(pitches);
+      console.log(convertedPitches);
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
-        // console.log(detectedNote)
+        console.log(detectedNote)
       	// Get arrays of entities that correspond to note components: 
       	var letters = this.sceneEl.querySelector('#lettergroup').childNodes; 
       	var pieslices = this.sceneEl.querySelector('#colorwheel').childNodes; 
@@ -478,8 +479,8 @@ AFRAME.registerSystem('musicvr',{
             if(k == 0){
               var steadyX = junkVerts[ii].x; 
               var steadyY = junkVerts[ii].y;
-              var new_x = steadyX + steadyX*12*aa*this.timeFloats[index];  
-              var new_y = steadyY + steadyY*12*aa*this.timeFloats[index];  
+              var new_x = steadyX + steadyX*9*aa*this.timeFloats[index];  
+              var new_y = steadyY + steadyY*9*aa*this.timeFloats[index];  
               circleObj.geometry.vertices[ii].x = new_x; 
               circleObj.geometry.vertices[ii].y = new_y; 
             }
