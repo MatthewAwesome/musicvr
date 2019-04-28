@@ -75,16 +75,17 @@ var detectorParams = {
   maxFrequency:4200,
 }
 // Building the detectors array: 
-for(let i = 0; i < C_notes.length-1; i++){
+for(let i = 1; i < C_notes.length-1; i++){
   detectorParams.minFrequency = C_notes[i]; 
   detectorParams.maxFrequency = C_notes[i+1];
   detectorArray.push(audioz.Pitchfinder.AMDF(detectorParams)); 
 }
 
 
-var junkCircle = new THREE.CircleGeometry(10,fftLength); 
+var junkCircle = new THREE.CircleGeometry(11.5,fftLength); 
 junkCircle.vertices.shift();
-var junkVerts = junkCircle.vertices; 
+var junkVerts = junkCircle.vertices;
+
 /************************
  A COMPONENT TO HOUSE OUR MUSIC GEOMETRIES. 
  SCENE CAN DO THIS EQUALLY WELL, WANT TO KEEP THINGS MODULAR,THOUGH. 
@@ -92,12 +93,14 @@ var junkVerts = junkCircle.vertices;
 AFRAME.registerComponent('musicscene',{
 
 	init: async function(){
+
+    // Thing seems to demand an interaction. I need to cue the user.   
 		/*************************
 	  GEOMETRICAL PRELIMINARIES: 
 
 	  In this subsection we define a geometry 
 	  upon which our analyzed audio will operate. 
-
+    
 	  *************************/
 	  // A cirle to get some vertices:
 	  var circ12 = await new THREE.CircleGeometry(8,12); 
@@ -115,7 +118,7 @@ AFRAME.registerComponent('musicscene',{
     this.el.appendChild(colorWheel); 
 	  this.el.appendChild(noteCircle); 
     this.el.appendChild(noteLines)
-    this.el.setAttribute('position',{x:0,y:2.5,z:-14});
+    this.el.setAttribute('position',{x:0,y:2.5,z:-20});
 
     // Let's make a particle object: 
 
@@ -128,30 +131,97 @@ AFRAME.registerComponent('musicscene',{
     
     // Add the animation: 
 
-    // Going to make the particle system just a rotating group of spheres. 
-
-
-
+    // Making a circular wave: 
     var lineCircle = document.createElement('a-entity'); 
-    var circleGeo  = await new THREE.CircleGeometry(10,fftLength); 
+    var circleGeo  = await new THREE.CircleGeometry(11.5,fftLength); 
     var lineGeo = new THREE.Geometry(); 
     circleGeo.vertices.shift(); 
     lineGeo.vertices = circleGeo.vertices; 
-    var lineMaterial = new THREE.LineBasicMaterial({color:'blue',linewidth:3}); 
+    var lineMaterial = new THREE.LineBasicMaterial({color:'white',linewidth:3}); 
     lineMaterial.needsUpdate = true; 
     var lineObject = new THREE.Line(lineGeo,lineMaterial);
     lineObject.needsUpdate = true; 
     lineCircle.setObject3D('linecircle',lineObject); 
     lineCircle.setAttribute('id','line-circle'); 
     lineCircle.setAttribute('line-circle',{verts:lineGeo.vertices}); 
-    lineCircle.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
-    
-    var ball = document.createElement('a-entity'); 
-    ball.setAttribute('geometry',{primitive:'sphere',radius:0.85}); 
-    ball.setAttribute('material',{color:'gray',transparent:true,opacity:0.5}); 
-    ball.setAttribute('position',{x:0,y:10,z:0}); 
-    lineCircle.appendChild(ball); 
     this.el.appendChild(lineCircle); 
+
+    // Make a circular 'metronome':
+    // var ball = document.createElement('a-entity'); 
+    // ball.setAttribute('geometry',{primitive:'box',height:1.4,width:1.4,depth:1.4}); 
+    // ball.setAttribute('material',{color:'white',transparent:true,opacity:1}); 
+    // ball.setAttribute('position',{x:0,y:11.5,z:0}); 
+    // var ballPlane = document.createElement('a-entity'); 
+    // ballPlane.appendChild(ball); 
+    // ballPlane.setAttribute('id','ball-plane'); 
+    // ballPlane.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:360},dur:beatsInFourS,dir:'reverse',loop:true,easing:'linear'}); 
+    // this.el.appendChild(ballPlane);
+
+   // Adding some backing to the metronome for effect. 4 annular segments. 
+    var metCircle = document.createElement('a-entity'); 
+    var ringOne   = document.createElement('a-entity');
+    var ringTwo   = document.createElement('a-entity');
+    var ringThree = document.createElement('a-entity');
+    var ringFour  = document.createElement('a-entity');
+    var ringFive   = document.createElement('a-entity');
+    var ringSix  = document.createElement('a-entity');
+    var ringSeven = document.createElement('a-entity');
+    var ringEight = document.createElement('a-entity');
+    var ringNine   = document.createElement('a-entity');
+    var ringTen  = document.createElement('a-entity');
+    var ringEleven = document.createElement('a-entity');
+    var ringTwelve  = document.createElement('a-entity');
+    var outerCircle = document.createElement('a-entity'); 
+    var innerCircle = document.createElement('a-entity'); 
+
+    outerCircle.setAttribute('geometry',{primitive:'ring',radiusInner:12.9,radiusOuter:13.0}); 
+    outerCircle.setAttribute('material',{color:'white'}); 
+    innerCircle.setAttribute('geometry',{primitive:'ring',radiusInner:11.0,radiusOuter:11.1}); 
+    innerCircle.setAttribute('material',{color:'white'}); 
+    // metCircle.appendChild(outerCircle); 
+    // metCircle.appendChild(innerCircle);
+
+    ringOne.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:0}); 
+    ringTwo.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:30}); 
+    ringThree.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:60}); 
+    ringFour.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:90}); 
+    ringFive.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:120}); 
+    ringSix.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:150}); 
+    ringSeven.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:180}); 
+    ringEight.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:210}); 
+    ringNine.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:240}); 
+    ringTen.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:270}); 
+    ringEleven.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:300}); 
+    ringTwelve.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:330}); 
+   
+    ringOne.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringTwo.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
+    ringThree.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringFour.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
+    ringFive.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringSix.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
+    ringSeven.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringEight.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8});
+    ringNine.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringTen.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
+    ringEleven.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
+    ringTwelve.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8});
+
+    metCircle.appendChild(ringOne);
+    metCircle.appendChild(ringTwo);
+    metCircle.appendChild(ringThree);
+    metCircle.appendChild(ringFour); 
+    metCircle.appendChild(ringFive);
+    metCircle.appendChild(ringSix);
+    metCircle.appendChild(ringSeven);
+    metCircle.appendChild(ringEight); 
+    metCircle.appendChild(ringNine);
+    metCircle.appendChild(ringTen);
+    metCircle.appendChild(ringEleven);
+    metCircle.appendChild(ringTwelve); 
+
+    metCircle.setAttribute('position',{x:0,y:0,z:-0.1});
+    // this.el.appendChild(metCircle);
     // Make a circle geometry and use for vertices: 
 
     // Loop through the vertices, putting a sphere (or circle if spheres are too costly)
@@ -179,7 +249,7 @@ AFRAME.registerSystem('musicvr',{
 
 		// bind the audio loader: 
 		this.audioloadfcn = AFRAME.utils.bind(this.audioloadfcn, this); 
-
+    this.audioFcn = AFRAME.utils.bind(this.startAudio, this); 
 	  /*************************
 	  AUDIO PRELIMINARIES: 
 
@@ -190,9 +260,9 @@ AFRAME.registerSystem('musicvr',{
 	  *************************/
 
 
-	  var listener    = new THREE.AudioListener();
-	  this.audioLoader = new THREE.AudioLoader();
-	  this.context     = new AudioContext();
+	  var listener    =  await new THREE.AudioListener();
+	  this.audioLoader = await new THREE.AudioLoader();
+	  this.context     = await new AudioContext();
 
 	  // Some audio nodes: 
 	  // var fftArray, analyser, fftFloats, delay, source, filter, gainNode, source2, fftCount, timeFloats, channel0, channel1; 
@@ -222,8 +292,14 @@ AFRAME.registerSystem('musicvr',{
 	  this.filter.gain.setValueAtTime(0, this.context.currentTime);
 
 	  // Load the audio: 
-	  this.audioLoader.load( 'assets/audio/dc502.mp3', this.audioloadfcn); 
-
+    this.sceneEl.addEventListener('click', async function(evt){
+      // console.log(this.sceneEl.systems.musicvr);
+      // console.log(this.sceneEl.systems.musicvr.audioLoader)
+      if(this.sceneEl.systems.musicvr.playing == false){
+        await this.sceneEl.systems.musicvr.audioLoader.load( 'assets/audio/dc502.mp3', this.sceneEl.systems.musicvr.audioloadfcn);
+        // console.log('loading')
+      }
+    })
     this.tocs = 0; 
     this.even = false; 
 	  /*Some other audio stuff: 
@@ -300,14 +376,13 @@ AFRAME.registerSystem('musicvr',{
 	// Tick: 
 	tock: async function(t,delta_t){
 		if(this.playing == true && t-this.t_of_last_scan > 200 ){
-      this.tocs += 1; 
-      this.even = !this.even; 
 			// Get data fram analyser and toss it into S(t) and f(t) arrays. 
 			this.analyser.getByteFrequencyData(this.fftArray); 
       var ss = this.analyser.getFloatTimeDomainData(this.timeFloats);
       // console.log(this.timeFloats);
         // Use the date to detect pitches: 
-      var pitches = await audioz.Pitchfinder.frequencies( [detectPitch,amdfDetector], this.timeFloats, quantInterval);
+      // var pitches = await audioz.Pitchfinder.frequencies( detectorArray, this.timeFloats, quantInterval);
+      var pitches = await audioz.Pitchfinder.frequencies( detectors, this.timeFloats, quantInterval);
       // console.log(pitches);
       // See if the detected pitch (in Hz) matches a note:
       var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,25);
@@ -315,19 +390,10 @@ AFRAME.registerSystem('musicvr',{
       // console.log(this.source.buffer);
       // console.log(this.source);
 
-      try{
-        var bpm = await audioz.BeatDetector.guess(this.source.buffer,this.source.context.currentTime,10); 
-        var apm = await audioz.BeatDetector.analyze(this.source.buffer,this.source.context.currentTime,10); 
-        console.log(bpm);
-        console.log(apm);
-      }
-      catch(err){
-        console.log(err); 
-      }
-
       // console.log(freqObj);
       // console.log(convertedPitches);
       // Did we find a note?
+      // console.log(pitches);
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
@@ -340,6 +406,7 @@ AFRAME.registerSystem('musicvr',{
       	for(let i = 0; i<letters.length; i++){
       		// Handling the letters first: 
       		var letterId = letters[i].getAttribute('class');
+          // console.log(letterId)
       		// Is this our detected note?
       		if(letterId == detectedNote){
       			letters[i].setAttribute('letter-component',{detected:true}); 
@@ -367,17 +434,6 @@ AFRAME.registerSystem('musicvr',{
             var material = pieslices[i].getAttribute('material'); 
             var color = material.color.toString(16); 
             color = "#" + color;
-            // var particleObj = await this.sceneEl.querySelector('#particleSystem'); 
-            // var children = await particleObj.childNodes; 
-            // for(let jj = 0; jj < children.length; jj++){
-            //   var childNode = await children[jj]; 
-            //   // console.log(childNode);
-            //   children[jj].setAttribute('material',{color:color}); 
-            //   // console.log(children[jj]);
-            //   // console.log('here!!!!!!')
-            // }
-            // console.log(children);
-
           }
       		else if(pieslices[i].getAttribute('pieslice').detected == true && sliceId != detectedNote){ 
             // console.log('fading slice');
@@ -398,23 +454,12 @@ AFRAME.registerSystem('musicvr',{
       	}; 
         // console.log(nodes);  
       }
-      // We can move the thing according to beat: 
-      if(this.tocs % 3 == 0){
-        // set the animation 
-        // var aa = absAvg(this.timeFloats); 
-        // console.log(aa);
-        // var y_shift = 2 + (aa * 10); 
-        // var newTo = {X:0,y:2+y_shift,z:-12}; 
-        // var musicEl = this.sceneEl.querySelector('#musicvr'); 
-        // musicEl.setAttribute('animation',{to:newTo}); 
-      }
       if(this.playing == true){
-                // get the string group: 
+          
         var sg = await this.sceneEl.querySelector('#stringgroup'); 
         var circleLine = await this.sceneEl.querySelector('#line-circle'); 
         circleObj = await circleLine.getObject3D('linecircle'); 
         var nodes = sg.childNodes; 
-        // var particleNodes = particleGroup.childNodes; 
         var aa = absAvg(this.timeFloats); 
         if(color){
           var newColor = await new THREE.Color(color);
@@ -424,24 +469,20 @@ AFRAME.registerSystem('musicvr',{
         // console.log(color);
         for(let k = 0; k<nodes.length; k++){
           var theta = k * Math.PI/12; 
-      
           var obj = nodes[k].getObject3D('liner'); 
           var particleIndex = 0; 
-  
           for(let ii = 0; ii < this.timeFloats.length; ii++){
             var index = ii; 
-            obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index]; 
-            obj.geometry.vertices[index+1].y = 25*aa*this.timeFloats[index] * Math.sin(theta); 
+            obj.geometry.vertices[index+1].y = 40*aa*this.timeFloats[index]; 
+            obj.geometry.vertices[index+1].y = 40*aa*this.timeFloats[index] * Math.sin(theta); 
             if(k == 0){
               var steadyX = junkVerts[ii].x; 
               var steadyY = junkVerts[ii].y;
-              var new_x = steadyX + steadyX*5*aa*this.timeFloats[index];  
-              var new_y = steadyY + steadyY*5*aa*this.timeFloats[index];  
+              var new_x = steadyX + steadyX*12*aa*this.timeFloats[index];  
+              var new_y = steadyY + steadyY*12*aa*this.timeFloats[index];  
               circleObj.geometry.vertices[ii].x = new_x; 
               circleObj.geometry.vertices[ii].y = new_y; 
-              // We want to shift our vertices according to time-floats: 
             }
-
           }
           if(k == 0){
             circleObj.geometry.verticesNeedUpdate = true; 
@@ -450,16 +491,39 @@ AFRAME.registerSystem('musicvr',{
         }
       }
 		}
-	},
-	pitchScan: async function(){
-		//do some scanning for pitches. 
-	}, 
+    // if(this.playing == true && this.tocs % 2 == 0){
+    //   try{
+    //     var bpm = await audioz.BeatDetector.guess(this.source.buffer); 
+    //     // var apm = await audioz.BeatDetector.analyze(this.source.buffer); 
+    //     console.log(bpm);
 
+    //     var beatsPerMs = (bpm.bpm/60) / 1000; // bmp / 60s/m = beats per second / 1000 ms/2 = BEATS PER MILLISECOND.  
+    //     // Next we need to make a four beats! 
+    //     var beatsInFourS = 4/beatsPerMs; 
+    //     var ballPlane = this.sceneEl.querySelector('#ball-plane'); 
+    //     var oldAnim = ballPlane.getAttribute('animation'); 
+    //     var currentRotation = ballPlane.getAttribute('rotation'); 
+    //     var toVector = currentRotation; 
+    //     toVector.z += 360; 
+    //     oldAnim.from = currentRotation; 
+    //     oldAnim.to = toVector; 
+    //     oldAnim.dur = beatsInFourS; 
+    //     ballPlan.removeAttribute('animation'); 
+    //     ballPlane.setAttribute('animation',oldAnim);
+
+    //   }
+    //   catch(err){
+    //     console.log(err); 
+    //   }
+    // }
+
+    this.tocs += 1; 
+	},
+ 
   // A function to load audio such that our parent class (the system) inherits 
   // data from the audio buffer and distrubutes said data to things like our analyser, 
   // i.e. this.analyser. 
 	audioloadfcn: async function( buffer ) {
-		// bind this: 
     this.channel0 = buffer.getChannelData(0);
     // this.channel1 = buffer.getChannelData(1);
     this.source = this.context.createBufferSource();
@@ -481,9 +545,9 @@ AFRAME.registerSystem('musicvr',{
     this.playing    = true; 
   }, 
 
+
   // A function that workd with animations. Once the note group fades to completion, 
   // we hide the line. That way things will appear in greater sychrony...a good thing!
-
   animator: function(e){
     if(e.detail.name == 'animation__slicefade'){
       // Which note is fading away; 
