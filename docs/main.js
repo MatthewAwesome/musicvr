@@ -221,7 +221,19 @@ AFRAME.registerComponent('musicscene',{
     metCircle.appendChild(ringTwelve); 
 
     metCircle.setAttribute('position',{x:0,y:0,z:-0.1});
-    // this.el.appendChild(metCircle);
+
+    // intro text: 
+    var introString = 'Click or Tap to Start'
+    var introText = document.createElement('a-entity'); 
+    introText.setAttribute('geometry',{primitive:'plane',height:'auto',width:'auto'}); 
+    introText.setAttribute('material',{color:'#000',transparent:'true',opacity:0.5}); 
+    introText.setAttribute('text',{value:introString,color:'white',side:'double',align:'center',baseline:'center',font:'dejavu',wrapCount:introString.length+2,transparent:true,opacity:1.0});  
+    introText.setAttribute('side', 'double');
+    introText.setAttribute('scale',{x: 5, y: 5, z: 5})
+    introText.setAttribute('position', {x: 0, y: 0, z: 15});
+    introText.setAttribute('rotation', {x: 0, y: 0, z: 0});
+    introText.setAttribute('id','introtext'); 
+    this.el.appendChild(introText);
     // Make a circle geometry and use for vertices: 
 
     // Loop through the vertices, putting a sphere (or circle if spheres are too costly)
@@ -393,12 +405,12 @@ AFRAME.registerSystem('musicvr',{
       // console.log(freqObj);
       // console.log(convertedPitches);
       // Did we find a note?
-      console.log(pitches);
-      console.log(convertedPitches);
+      // console.log(pitches);
+      // console.log(convertedPitches);
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
-        console.log(detectedNote)
+        // console.log(detectedNote)
       	// Get arrays of entities that correspond to note components: 
       	var letters = this.sceneEl.querySelector('#lettergroup').childNodes; 
       	var pieslices = this.sceneEl.querySelector('#colorwheel').childNodes; 
@@ -544,13 +556,22 @@ AFRAME.registerSystem('musicvr',{
     this.timeFloats = await new Float32Array(this.analyser.frequencyBinCount);  
     this.fftCount   = this.analyser.frequencyBinCount;  
     this.playing    = true; 
+
+    // fade intro text: 
+    var introText = this.sceneEl.querySelector('#introtext'); 
+    introText.setAttribute('animation__introfade',{property:'text.opacity',to:0.2,dur:800,delay:0,easing:'easeOutSine'})
   }, 
 
 
   // A function that workd with animations. Once the note group fades to completion, 
   // we hide the line. That way things will appear in greater sychrony...a good thing!
   animator: function(e){
-    if(e.detail.name == 'animation__slicefade'){
+    console.log(e.detail.name);
+    if(e.detail.name == 'animation__introfade'){
+      var introText = this.sceneEl.querySelector('#introtext'); 
+      introText.setAttribute('visible',false); 
+    }
+    else if(e.detail.name == 'animation__slicefade'){
       // Which note is fading away; 
       var target_class = "." + e.target.getAttribute('class');
       // Hid away the waveform line
