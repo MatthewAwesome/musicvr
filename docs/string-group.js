@@ -1,7 +1,7 @@
 // Making a string group: 
 
 AFRAME.registerComponent('string-group',{
-	
+
 	// Schematize it: 
 	schema:{
 		fftSize:{default:0}, 
@@ -34,8 +34,8 @@ AFRAME.registerComponent('string-group',{
 	  	// making a element: 
 	  	var lineEl = document.createElement('a-entity'); 
 	    // Defining an angle: 
-	    var thetaStart = (12-i) * ( 2*Math.PI / 12); 
-	    var sectGeo = new THREE.CircleGeometry(6,4,thetaStart,thetaLength); 
+	    var thetaStart = (i) * ( 2*Math.PI / 12) - Math.PI/6; 
+	    var sectGeo = await new THREE.CircleGeometry(6,4,thetaStart,thetaLength); 
 	    // A 'cone-of-lines'. One line per sector: 
 	    // Hashing out a color: 
 	    var lineColor = this.data.toneInfo[i].color; 

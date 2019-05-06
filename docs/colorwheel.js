@@ -9,7 +9,7 @@ AFRAME.registerComponent('colorwheel',{
 			// make at sector: 
 			var sector = document.createElement('a-entity'); 
 			// where does thetaStart?
-			var thetaStart = 360-30*j; 
+			var thetaStart = 30*j-30; 
 			sector.setAttribute('geometry',{primitive:'circle',radius:6,thetaStart:thetaStart,thetaLength:thetaLength})
 			sector.setAttribute('pieslice',{info:this.data.toneInfo[j]}); 
 	    this.el.appendChild(sector);

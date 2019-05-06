@@ -6,10 +6,10 @@
 /*************************
 	PITCH FINDER STUFF
 *************************/
-const yinParams       = {threshold:0.5,probabilityThreshold:0.5}; 
+const yinParams       = {threshold:0.6,probabilityThreshold:0.5}; 
 const detectPitch     = new audioz.Pitchfinder.YIN(yinParams);
-const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.3}); 
-const quantInterval = {tempo:500,quantization:4}; 
+const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.9}); 
+const quantInterval = {tempo:500,quantization:2}; 
 
 // console.log(audioz.BeatDetector); 
 
@@ -105,7 +105,7 @@ AFRAME.registerComponent('musicscene',{
 	  // A cirle to get some vertices:
 	  var circ12 = await new THREE.CircleGeometry(8,12); 
 	  var toneInfo = await toneStuff(circ12.vertices); 
-    console.log(toneInfo);
+    // console.log(toneInfo);
 	  var noteCircle = document.createElement('a-entity');
 	  noteCircle.setAttribute('lettergroup',{toneInfo:toneInfo});
 	  noteCircle.setAttribute('id','lettergroup'); 
@@ -137,7 +137,7 @@ AFRAME.registerComponent('musicscene',{
     var lineGeo = new THREE.Geometry(); 
     circleGeo.vertices.shift(); 
     lineGeo.vertices = circleGeo.vertices; 
-    var lineMaterial = new THREE.LineBasicMaterial({color:'white',linewidth:3}); 
+    var lineMaterial = new THREE.LineBasicMaterial({color:'white',linewidth:2}); 
     lineMaterial.needsUpdate = true; 
     var lineObject = new THREE.Line(lineGeo,lineMaterial);
     lineObject.needsUpdate = true; 
@@ -305,15 +305,13 @@ AFRAME.registerSystem('musicvr',{
 
 	  // Load the audio: 
     this.sceneEl.addEventListener('click', async function(evt){
-      // console.log(this.sceneEl.systems.musicvr);
-      // console.log(this.sceneEl.systems.musicvr.audioLoader)
       if(this.sceneEl.systems.musicvr.playing == false){
         await this.sceneEl.systems.musicvr.audioLoader.load( 'assets/audio/dc502.mp3', this.sceneEl.systems.musicvr.audioloadfcn);
-        // console.log('loading')
       }
     })
     this.tocs = 0; 
     this.even = false; 
+
 	  /*Some other audio stuff: 
 		  gainNode.gain.setValueAtTime(0.5,context.currentTime); 
 		  analyser.smoothingTimeConstant = 0.8;
@@ -394,10 +392,10 @@ AFRAME.registerSystem('musicvr',{
       // console.log(this.timeFloats);
         // Use the date to detect pitches: 
       // var pitches = await audioz.Pitchfinder.frequencies( detectorArray, this.timeFloats, quantInterval);
-      var pitches = await audioz.Pitchfinder.frequencies( detectors, this.timeFloats, quantInterval);
+      var pitches = await audioz.Pitchfinder.frequencies( detectPitch, this.timeFloats, quantInterval);
       // console.log(pitches);
       // See if the detected pitch (in Hz) matches a note:
-      var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,40);
+      var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,15);
       // We can do a beat detector...and use this to update 
       // console.log(this.source.buffer);
       // console.log(this.source);
@@ -543,14 +541,14 @@ AFRAME.registerSystem('musicvr',{
     this.source.buffer = buffer;
     this.source.loop = true;
     this.source.start()
-    this.source.connect(this.filter);
-    this.filter.connect(this.gainNode);
-    this.gainNode.connect(this.analyser); 
+    this.source.connect(this.analyser);
+    // this.filter.connect(this.gainNode);
+    // this.gainNode.connect(this.analyser); 
     // filter.connect(analyser)
     // source.disconnect(this.context.destination);
     this.analyser.connect(this.context.destination);
     this.analyser.fftSize = fftSize; 
-    this.analyser.smoothingTimeConstant = 0.95;
+    this.analyser.smoothingTimeConstant = 0.0;
     this.fftArray   = new Uint8Array(this.analyser.frequencyBinCount);
     this.fftFloats  = await new Float32Array(this.analyser.frequencyBinCount);  
     this.timeFloats = await new Float32Array(this.analyser.frequencyBinCount);  
@@ -608,6 +606,7 @@ function toneStuff(verts){
   // Making the last index the first index: 
   var lastLast = verts.slice(11); 
   verts = lastLast.concat(verts.slice(0,11)); 
+  verts = verts.reverse();
 
   // Our string array: 
   var strs = [ 
