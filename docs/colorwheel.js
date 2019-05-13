@@ -1,4 +1,5 @@
-/****
+/*************************
+
 	Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
 	music education tool!
 
@@ -9,7 +10,8 @@
 	Our color-wheel: Pieslices of various colors that correspond to the spectrum of musical notes!
 	Similar to the structure of lettergroup.js a toneInfo array is used to provide position/color data 
 	for all 12 notes. This data array us looped through to make a color-wheel of sorts. 
- ****/
+
+ *************************/
 
 AFRAME.registerComponent('colorwheel',{
 	schema: {

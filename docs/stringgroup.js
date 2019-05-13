@@ -1,4 +1,4 @@
-/**** 
+/*************************
 
 	Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
 	music education tool!
@@ -9,7 +9,7 @@
 
 	Making a string group! Basically, these are 'strings' that vibrate with the songs waveform!
 
-****/
+*************************/
 
 AFRAME.registerComponent('string-group',{
 

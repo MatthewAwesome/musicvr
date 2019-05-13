@@ -1,4 +1,5 @@
-/*******
+/*************************
+
 	Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
 	music education tool!
 
@@ -7,7 +8,8 @@
 	All rights reserved, 2019. 
 
   This script specifies a group of note 'letters'. A cirle of letters that signify the musical notes, e.g. C! 
- *******/
+
+ *************************/
 
 // All letter components will be accumulated in this group, called 'lettergroup':
 AFRAME.registerComponent('lettergroup',{
