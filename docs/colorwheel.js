@@ -1,9 +1,22 @@
-// Our color-wheel: 
+/****
+	Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
+	music education tool!
+
+	Author: Matthew Ellis 
+	   
+	All rights reserved, 2019. 
+
+	Our color-wheel: Pieslices of various colors that correspond to the spectrum of musical notes!
+	Similar to the structure of lettergroup.js a toneInfo array is used to provide position/color data 
+	for all 12 notes. This data array us looped through to make a color-wheel of sorts. 
+ ****/
+
 AFRAME.registerComponent('colorwheel',{
 	schema: {
 		toneInfo:{default:[]},  
 	},
 	init: async function(){
+		// Each sector has an angular length of 30 degrees (1/12th of the circle!)
 		var thetaLength = 30; 
 		for(let j = 0; j<this.data.toneInfo.length; j++){
 			// make at sector: 
@@ -19,7 +32,7 @@ AFRAME.registerComponent('colorwheel',{
 	}, 
 });
 
-// Component for individual sectors: 
+// Component for individual sectors: the detected is use to update the apperance of a given slice when the corresponding is detected.
 AFRAME.registerComponent('pieslice',{
 	schema:{
 		info:{default:{}},

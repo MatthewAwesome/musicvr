@@ -1,35 +1,53 @@
-// This will be our main scene component. 
+/*************************
 
-// This component will be in charge of listening to the audio, and doing cool stuff with it: 
+  Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
+  music education tool!
+  Author: Matthew Ellis 
+  All rights reserved, 2019. 
+
+  The bulk of our scene is generated in this script. Basic layout and goings-on summed up below: 
+
+  // INTRO STUFF: 
+
+    >>Define some parameters, some globals (e.g. audio analyzer stuff, pitch detector stuff, frequency/note data, etc). 
+
+  // AFRAME STUFF:
+
+    >>Define a scene component to house morsels of visual awesomeness! 
+    >>Define a system component to play some audio and update the scene component as the audio plays. 
+
+  // CELLAR STUFF: 
+    >>Define a bunch of utility functions below the AFRAME stuff. 
+
+*************************/
 
 
 /*************************
-	PITCH FINDER STUFF
+  ARRAY OF NOTE IDS
 *************************/
-const yinParams       = {threshold:0.6,probabilityThreshold:0.5}; 
-const detectPitch     = new audioz.Pitchfinder.YIN(yinParams);
-const amdfDetector    = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.9}); 
-const quantInterval = {tempo:500,quantization:2}; 
-
-// console.log(audioz.BeatDetector); 
-
-var detectors = [detectPitch,amdfDetector]; 
-// an array of note ids: 
 const noteIds = [
-	'Cnatural', 
-	'Csharp_Dflat', 
-	'Dnatural',  
-	'Dsharp_Eflat', 
-	'Enatural', 
-	'Fnatural_Esharp', 
-	'Fsharp_Gflat', 
-	'Gnatural',  
-	'Gsharp_Aflat', 
-	'Anatural',
-	'Asharp_Bflat', 
-	'Bnatural_Cflat',  
+  'Cnatural', 
+  'Csharp_Dflat', 
+  'Dnatural',  
+  'Dsharp_Eflat', 
+  'Enatural', 
+  'Fnatural_Esharp', 
+  'Fsharp_Gflat', 
+  'Gnatural',  
+  'Gsharp_Aflat', 
+  'Anatural',
+  'Asharp_Bflat', 
+  'Bnatural_Cflat',  
 ]; 
 
+/*************************
+  PITCH DETECTOR DEFINITIONS:
+*************************/
+const yinParams     = {threshold:0.6,probabilityThreshold:0.5}; 
+const detectPitch   = new audioz.Pitchfinder.YIN(yinParams);
+const amdfDetector  = new audioz.Pitchfinder.AMDF({minFrequency:20,maxFrequency:4200,sensitivity:0.9}); 
+const quantInterval = {tempo:500,quantization:2}; 
+var detectors       = [detectPitch,amdfDetector]; 
 
 /*************************
 	AUDIO ANALYZER GLOBALS
@@ -40,26 +58,25 @@ audioz.lpf.smoothing  = 0.4;
 
 // Our base frequency: 
 const A4 = 440; 
-// Specify C0.
-// Why -4.75? C0 is 4.75 octaves down from A4.C0 -> C4 is 5 octaves. A4<--C4 is 3 half steps, or 0.25 octaves 
-// 5-0.25 is 4.75.
-// The expression belowgives C0 in units of Hz.
+/* Specify C0: 
+  Why -4.75? C0 is 4.75 octaves down from A4.C0 -> C4 is 5 octaves. A4<--C4 is 3 half steps, or 0.25 octaves. 5-0.25 is 4.75.
+  The expression below gives C0 in units of Hz.
+*/
 const C0 = A4 * Math.pow(2.0, -4.75); 
 
-// FFT STUFF: 
+// FFT STUFF: (HOW FINE TO WE WANT OUR AUDIO ANALYZER TO GO?)
 const fftSize       = 2**13;
 const noteFFTSize   = 2**13; 
 const fftLength     = fftSize / 2;  
 const noteFFTLength = noteFFTSize / 2; 
 
-// THE ABOVE DETECTORS AREN'T EMPLOYED JUST YET, BUT IN FUTURE ITERATIONS, THEY MAY BE: 
-// We use this variables below to create a note-spectrum, in which we match frequencies with their correspondent notes.
+// GENERATING SOME USEFUL ARRAYS AND OJBECTS: MATCHING FREQUENCY TO NOTES!
 const minFrequency = 14; 
 const maxFrequency = 4200; 
 var freqArray      = getFreqArray(fftLength); 
 var freqObj        = freqNoteMatch(freqArray,minFrequency,maxFrequency,C0); 
 
-// Get C's and use them to build our pitch detector array: One pitch detector per octave. 
+// Get C's and use them to build our pitch detector array: One pitch detector per octave. (we aren't utilizing this at present, but can if deemed appropriate)
 var C_notes = freqObj.pureToneArray.filter( 
   (x,index) => { if(index % 12 == 0){ return x }
 })
@@ -82,54 +99,39 @@ for(let i = 0; i < C_notes.length-1; i++){
 }
 
 
-var junkCircle = new THREE.CircleGeometry(11.5,fftLength); 
-junkCircle.vertices.shift();
-var junkVerts = junkCircle.vertices;
+var fixedCircle = new THREE.CircleGeometry(11.5,fftLength); 
+fixedCircle.vertices.shift();
+var fixedVerts = fixedCircle.vertices;
+
 
 /************************
  A COMPONENT TO HOUSE OUR MUSIC GEOMETRIES. 
  SCENE CAN DO THIS EQUALLY WELL, WANT TO KEEP THINGS MODULAR,THOUGH. 
 **************************/
+
 AFRAME.registerComponent('musicscene',{
 
 	init: async function(){
 
-    // Thing seems to demand an interaction. I need to cue the user.   
-		/*************************
-	  GEOMETRICAL PRELIMINARIES: 
-
-	  In this subsection we define a geometry 
-	  upon which our analyzed audio will operate. 
-    
-	  *************************/
-	  // A cirle to get some vertices:
+	  // Everything is constructed in a circular manner: We start by making a circle!
 	  var circ12 = await new THREE.CircleGeometry(8,12); 
+    // Generate some toneInfo using the vertices generated above: 
 	  var toneInfo = await toneStuff(circ12.vertices); 
-    // console.log(toneInfo);
+ 
+    // Making a cirle of note strings: 
 	  var noteCircle = document.createElement('a-entity');
 	  noteCircle.setAttribute('lettergroup',{toneInfo:toneInfo});
 	  noteCircle.setAttribute('id','lettergroup'); 
+
+    // Making a colorwheel, i.e. a circle of pieslices, one slice per note!
 	 	var colorWheel = await document.createElement('a-entity');
 	  await colorWheel.setAttribute('colorwheel',{toneInfo:toneInfo});
 	  colorWheel.setAttribute('id','colorwheel');
+
+    // Making a cone of note strings, one string per note, colored/positioned accordingly: 
     var noteLines = document.createElement('a-entity');
     noteLines.setAttribute('string-group',{fftSize:noteFFTSize,toneInfo:toneInfo});   
 		noteLines.setAttribute('id','stringgroup'); 
-    this.el.appendChild(colorWheel); 
-	  this.el.appendChild(noteCircle); 
-    this.el.appendChild(noteLines)
-    this.el.setAttribute('position',{x:0,y:2.5,z:-20});
-
-    // Let's make a particle object: 
-
-    var beatsPerMs = (104/60) / 1000; // bmp / 60s/m = beats per second / 1000 ms/2 = BEATS PER MILLISECOND.  
-    // Next we need to make a four beats! 
-    var beatsInFourS = 4/beatsPerMs; 
-    console.log(beatsInFourS);
-
-  
-    
-    // Add the animation: 
 
     // Making a circular wave: 
     var lineCircle = document.createElement('a-entity'); 
@@ -143,86 +145,8 @@ AFRAME.registerComponent('musicscene',{
     lineObject.needsUpdate = true; 
     lineCircle.setObject3D('linecircle',lineObject); 
     lineCircle.setAttribute('id','line-circle'); 
-    lineCircle.setAttribute('line-circle',{verts:lineGeo.vertices}); 
-    this.el.appendChild(lineCircle); 
 
-    // Make a circular 'metronome':
-    // var ball = document.createElement('a-entity'); 
-    // ball.setAttribute('geometry',{primitive:'box',height:1.4,width:1.4,depth:1.4}); 
-    // ball.setAttribute('material',{color:'white',transparent:true,opacity:1}); 
-    // ball.setAttribute('position',{x:0,y:11.5,z:0}); 
-    // var ballPlane = document.createElement('a-entity'); 
-    // ballPlane.appendChild(ball); 
-    // ballPlane.setAttribute('id','ball-plane'); 
-    // ballPlane.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:360},dur:beatsInFourS,dir:'reverse',loop:true,easing:'linear'}); 
-    // this.el.appendChild(ballPlane);
-
-   // Adding some backing to the metronome for effect. 4 annular segments. 
-    var metCircle = document.createElement('a-entity'); 
-    var ringOne   = document.createElement('a-entity');
-    var ringTwo   = document.createElement('a-entity');
-    var ringThree = document.createElement('a-entity');
-    var ringFour  = document.createElement('a-entity');
-    var ringFive   = document.createElement('a-entity');
-    var ringSix  = document.createElement('a-entity');
-    var ringSeven = document.createElement('a-entity');
-    var ringEight = document.createElement('a-entity');
-    var ringNine   = document.createElement('a-entity');
-    var ringTen  = document.createElement('a-entity');
-    var ringEleven = document.createElement('a-entity');
-    var ringTwelve  = document.createElement('a-entity');
-    var outerCircle = document.createElement('a-entity'); 
-    var innerCircle = document.createElement('a-entity'); 
-
-    outerCircle.setAttribute('geometry',{primitive:'ring',radiusInner:12.9,radiusOuter:13.0}); 
-    outerCircle.setAttribute('material',{color:'white'}); 
-    innerCircle.setAttribute('geometry',{primitive:'ring',radiusInner:11.0,radiusOuter:11.1}); 
-    innerCircle.setAttribute('material',{color:'white'}); 
-    // metCircle.appendChild(outerCircle); 
-    // metCircle.appendChild(innerCircle);
-
-    ringOne.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:0}); 
-    ringTwo.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:30}); 
-    ringThree.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:60}); 
-    ringFour.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:90}); 
-    ringFive.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:120}); 
-    ringSix.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:150}); 
-    ringSeven.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:180}); 
-    ringEight.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:210}); 
-    ringNine.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:240}); 
-    ringTen.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:270}); 
-    ringEleven.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:300}); 
-    ringTwelve.setAttribute('geometry',{primitive:'ring',radiusInner:11,radiusOuter:12,thetaLength:30,thetaStart:330}); 
-   
-    ringOne.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringTwo.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
-    ringThree.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringFour.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
-    ringFive.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringSix.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
-    ringSeven.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringEight.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8});
-    ringNine.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringTen.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8}); 
-    ringEleven.setAttribute('material',{color:'black',transparent:true,opacity:0.8}); 
-    ringTwelve.setAttribute('material',{color:'#aaaaaa',transparent:true,opacity:0.8});
-
-    metCircle.appendChild(ringOne);
-    metCircle.appendChild(ringTwo);
-    metCircle.appendChild(ringThree);
-    metCircle.appendChild(ringFour); 
-    metCircle.appendChild(ringFive);
-    metCircle.appendChild(ringSix);
-    metCircle.appendChild(ringSeven);
-    metCircle.appendChild(ringEight); 
-    metCircle.appendChild(ringNine);
-    metCircle.appendChild(ringTen);
-    metCircle.appendChild(ringEleven);
-    metCircle.appendChild(ringTwelve); 
-
-    metCircle.setAttribute('position',{x:0,y:0,z:-0.1});
-
-    // intro text: 
+    // Intro text, so I can cue the user to interact with the thing (no interaction == no music!)
     var introString = 'Click or Tap to Start'
     var introText = document.createElement('a-entity'); 
     introText.setAttribute('geometry',{primitive:'plane',height:'auto',width:'auto'}); 
@@ -233,23 +157,26 @@ AFRAME.registerComponent('musicscene',{
     introText.setAttribute('position', {x: 0, y: 0, z: 15});
     introText.setAttribute('rotation', {x: 0, y: 0, z: 0});
     introText.setAttribute('id','introtext'); 
+
+    // Add the above to the parent el: 
+    this.el.appendChild(colorWheel); 
+	  this.el.appendChild(noteCircle); 
+    this.el.appendChild(noteLines); 
+    this.el.appendChild(lineCircle); 
     this.el.appendChild(introText);
-    // Make a circle geometry and use for vertices: 
 
-    // Loop through the vertices, putting a sphere (or circle if spheres are too costly)
+    // Position as needed: 
+    this.el.setAttribute('position',{x:0,y:2.5,z:-20});
+	} // END OF INIT
+}) // END OF MUSICSCENE COMPONENT
 
-    // Animate the group. 
-	}
-})
+
 
 /*************************
-	DA SYSTEM
+	'DA SYSTEM
 *************************/
 AFRAME.registerSystem('musicvr',{
 
-	// dependencies: ?
-
-	// schema: ? 
 
 	// INIT IS WHERE WE LOAD THE AUDIO. 
 	init: async function(){
@@ -261,47 +188,26 @@ AFRAME.registerSystem('musicvr',{
 
 		// bind the audio loader: 
 		this.audioloadfcn = AFRAME.utils.bind(this.audioloadfcn, this); 
-    this.audioFcn = AFRAME.utils.bind(this.startAudio, this); 
+
 	  /*************************
 	  AUDIO PRELIMINARIES: 
-
-	  Here, we load our audio, instantiate our 
-	  listener, context, asorted nodes, 
-	  and connect feed them to the pitch finder?
-
+  	  Here, we load our audio, instantiate our 
+  	  listener, context, asorted nodes, 
+  	  and connect feed them to the pitch finder?
 	  *************************/
-
-
 	  var listener    =  await new THREE.AudioListener();
 	  this.audioLoader = await new THREE.AudioLoader();
 	  this.context     = await new AudioContext();
-
-	  // Some audio nodes: 
-	  // var fftArray, analyser, fftFloats, delay, source, filter, gainNode, source2, fftCount, timeFloats, channel0, channel1; 
-	 	// instantiat some this variables... 
-
 		this.fftArray; 
 	  this.analyser; 
 	  this.fftFloats; 
-	  this.delay; 
 	  this.source; 
-	  this.filter; 
-	  this.gainNode; 
-	  this.source2; 
 	  this.fftCount; 
 	  this.timeFloats;
 	  this.channel0; 
 	  this.channel1; 
 	  // Instantiating the various nodes: 
 	  this.analyser = this.context.createAnalyser();
-	  this.source2  = this.context.createBufferSource(); 
-	  this.filter   = this.context.createBiquadFilter();
-	  this.gainNode = this.context.createGain();
-
-	  // Set some node params:
-	  this.filter.type = "highpass";
-	  this.filter.frequency.setValueAtTime(180, this.context.currentTime);
-	  this.filter.gain.setValueAtTime(0, this.context.currentTime);
 
 	  // Load the audio: 
     this.sceneEl.addEventListener('click', async function(evt){
@@ -310,122 +216,44 @@ AFRAME.registerSystem('musicvr',{
       }
     })
     this.tocs = 0; 
-    this.even = false; 
 
-	  /*Some other audio stuff: 
-		  gainNode.gain.setValueAtTime(0.5,context.currentTime); 
-		  analyser.smoothingTimeConstant = 0.8;
-		  analyser.minDecibels = -90;
-		  analyser.maxDecibels = -10;
-	  */
-
-	  /**************************************************
-	  SOME AUDIO STUFF TO MAKE OUR NOTES 'COME ALIVE'! 
-	  **************************************************/
-
-	  // Arrays of audio nodes:
-	  var noteAudio = []; 
-
-	  // sources --> firstGains --> analysers --> secondGains(to mute...like a button, but this, however, is not needed now!)
-
-	  // This loops through the 11 notes, and divides the audio stream into 11 parallel streams, 1 for each note. 
-	  for(let i = 0; i <= 11; i++){
-
-	    // Making an object for every note: 
-	    var audioObject = {}; 
-
-	    // Taking care of the waveform: 
-	    var rr = [], im = []; 
-
-	    // We instantiate array of 0's for our pitches, at all octaves of interest: 
-	    for(let j = 0; j < freqObj.octaveStarts.length; j++){
-	      rr.push(0); 
-	      im.push(0); 
-	    }
-
-	    // Said arrays, rr and im, are waveCoeffs of our object: 
-	    audioObject.waveCoeffs = {real:rr,imag:im}; 
-
-	    // We give the audio object some nodes.  
-	    audioObject.source     = this.context.createOscillator(); 
-	    audioObject.firstGain  = this.context.createGain(); 
-	    audioObject.analyser   = this.context.createAnalyser(); 
-	    audioObject.secondGain = this.context.createGain(); 
-	    audioObject.wave       = this.context.createPeriodicWave(rr,im); 
-
-	    // Specify some props: 
-	    audioObject.source.frequency.value = freqObj.pureToneArray[i]; 
-	    audioObject.source.setPeriodicWave(audioObject.wave); 
-	    audioObject.analyser.fftSize = noteFFTSize;
-	    audioObject.secondGain.gain.setValueAtTime(0,this.context.currentTime);
-
-	    // Wire 'em up: 
-	    audioObject.source.connect(audioObject.firstGain); 
-	    audioObject.firstGain.connect(audioObject.analyser);
-	    audioObject.analyser.connect(audioObject.secondGain); 
-	    audioObject.secondGain.connect(this.context.destination); 
-
-	    // Fire 'em up: 
-	    audioObject.source.start(); 
-
-	    // A wave-form array: 
-	    audioObject.waveformArray = new Uint8Array(audioObject.analyser.frequencyBinCount); 
-
-	    // Add the object to the array: 
-	    noteAudio.push(audioObject); 
-
-	  }
-	  this.noteAudio = noteAudio;
-    // console.log(this.el); 
-    // Our system will handle animations, too: 
+    // Our system will handle animations, too. Here's a function to keep track of them: 
     this.el.addEventListener('animationcomplete',this.animator); 
-    // Add a analyzer component to the system: 
-	  // END OF INIT
-	}, 
 
-	// Tick: 
+	},  // END OF INIT
+
+	// We update the scene every other iteration (don't want to bog down the processor/videocard too much, a lot of data produced by audio analyzer!)
 	tock: async function(t,delta_t){
 		if(this.playing == true && t-this.t_of_last_scan > 200 && this.tocs % 2 == 0){
+
 			// Get data fram analyser and toss it into S(t) and f(t) arrays. 
 			this.analyser.getByteFrequencyData(this.fftArray); 
       var ss = this.analyser.getFloatTimeDomainData(this.timeFloats);
-      // console.log(this.timeFloats);
-        // Use the date to detect pitches: 
-      // var pitches = await audioz.Pitchfinder.frequencies( detectorArray, this.timeFloats, quantInterval);
       var pitches = await audioz.Pitchfinder.frequencies( detectPitch, this.timeFloats, quantInterval);
-      // console.log(pitches);
+
       // See if the detected pitch (in Hz) matches a note:
       var convertedPitches = convertPitches(pitches,freqObj.pureToneArray,maxFrequency,15);
-      // We can do a beat detector...and use this to update 
-      // console.log(this.source.buffer);
-      // console.log(this.source);
+      // console.log(convertedPitches);
 
-      // console.log(freqObj);
-      // console.log(convertedPitches);
-      // Did we find a note?
-      // console.log(pitches);
-      // console.log(convertedPitches);
+      // If we found a note, we need to update the scene: 
       if(convertedPitches.length > 0){
       	// Which note?
       	var detectedNote = noteIds[convertedPitches[0]]; 
-        // console.log(detectedNote)
       	// Get arrays of entities that correspond to note components: 
-      	var letters = this.sceneEl.querySelector('#lettergroup').childNodes; 
-      	var pieslices = this.sceneEl.querySelector('#colorwheel').childNodes; 
+      	var letters     = this.sceneEl.querySelector('#lettergroup').childNodes; 
+      	var pieslices   = this.sceneEl.querySelector('#colorwheel').childNodes; 
         var noteStrings = this.sceneEl.querySelector('#stringgroup').childNodes; 
-      	// Loop through the arrays: 
+      	// Loop through the arrays and update things accordingly: 
       	for(let i = 0; i<letters.length; i++){
       		// Handling the letters first: 
       		var letterId = letters[i].getAttribute('class');
-          // console.log(letterId)
       		// Is this our detected note?
       		if(letterId == detectedNote){
       			letters[i].setAttribute('letter-component',{detected:true}); 
       			letters[i].removeAttribute('animation__letterfade'); 
       			letters[i].setAttribute('animation__letterbrighten',{property:'text.opacity',to:0.8,dur:250,easing:'easeInSine',}); 
       		}
-      		else if(letters[i].getAttribute('letter-component').detected == true && letterId != detectedNote ){ 
-      			// console.log('fading letter'); 
+      		else if(letters[i].getAttribute('letter-component').detected == true && letterId != detectedNote ){  
             letters[i].removeAttribute('animation__letterbrighten' ); 
       			letters[i].setAttribute('animation__letterfade',{property:'text.opacity',to:0.2,dur:800,delay:250,easing:'easeOutSine'});
       			letters[i].setAttribute('letter-component',{detected:false}); 
@@ -447,13 +275,11 @@ AFRAME.registerSystem('musicvr',{
             color = "#" + color;
           }
       		else if(pieslices[i].getAttribute('pieslice').detected == true && sliceId != detectedNote){ 
-            // console.log('fading slice');
       			pieslices[i].removeAttribute('animation__slicebrighten'); 
       			pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
       			pieslices[i].setAttribute('pieslice',{detected:false}); 
       		}
           else{
-            // console.log('fading slice, alt');
             pieslices[i].removeAttribute('animation__slicebrighten'); 
             pieslices[i].setAttribute('animation__slicefade',{property:'material.opacity',to:0.15,delay:250,dur:800,easing:'easeOutSine'});
             pieslices[i].setAttribute('pieslice',{detected:false}); 
@@ -463,10 +289,9 @@ AFRAME.registerSystem('musicvr',{
             noteStrings[i].setAttribute('visible',true); 
           }		
       	}; 
-        // console.log(nodes);  
       }
+      // Updating the visualized waveforms via this.timeFloats data! 
       if(this.playing == true){
-          
         var sg = await this.sceneEl.querySelector('#stringgroup'); 
         var circleLine = await this.sceneEl.querySelector('#line-circle'); 
         circleObj = await circleLine.getObject3D('linecircle'); 
@@ -477,18 +302,16 @@ AFRAME.registerSystem('musicvr',{
           var hexer = newColor.getHex(); 
           circleObj.material.color.setHex(hexer); 
         }
-        // console.log(color);
         for(let k = 0; k<nodes.length; k++){
           var theta = k * Math.PI/12; 
           var obj = nodes[k].getObject3D('liner'); 
-          var particleIndex = 0; 
           for(let ii = 0; ii < this.timeFloats.length; ii++){
             var index = ii; 
             obj.geometry.vertices[index+1].y = 40*aa*this.timeFloats[index]; 
             obj.geometry.vertices[index+1].y = 40*aa*this.timeFloats[index] * Math.sin(theta); 
             if(k == 0){
-              var steadyX = junkVerts[ii].x; 
-              var steadyY = junkVerts[ii].y;
+              var steadyX = fixedVerts[ii].x; 
+              var steadyY = fixedVerts[ii].y;
               var new_x = steadyX + steadyX*9*aa*this.timeFloats[index];  
               var new_y = steadyY + steadyY*9*aa*this.timeFloats[index];  
               circleObj.geometry.vertices[ii].x = new_x; 
@@ -502,38 +325,16 @@ AFRAME.registerSystem('musicvr',{
         }
       }
 		}
-    // if(this.playing == true && this.tocs % 2 == 0){
-    //   try{
-    //     var bpm = await audioz.BeatDetector.guess(this.source.buffer); 
-    //     // var apm = await audioz.BeatDetector.analyze(this.source.buffer); 
-    //     console.log(bpm);
-
-    //     var beatsPerMs = (bpm.bpm/60) / 1000; // bmp / 60s/m = beats per second / 1000 ms/2 = BEATS PER MILLISECOND.  
-    //     // Next we need to make a four beats! 
-    //     var beatsInFourS = 4/beatsPerMs; 
-    //     var ballPlane = this.sceneEl.querySelector('#ball-plane'); 
-    //     var oldAnim = ballPlane.getAttribute('animation'); 
-    //     var currentRotation = ballPlane.getAttribute('rotation'); 
-    //     var toVector = currentRotation; 
-    //     toVector.z += 360; 
-    //     oldAnim.from = currentRotation; 
-    //     oldAnim.to = toVector; 
-    //     oldAnim.dur = beatsInFourS; 
-    //     ballPlan.removeAttribute('animation'); 
-    //     ballPlane.setAttribute('animation',oldAnim);
-
-    //   }
-    //   catch(err){
-    //     console.log(err); 
-    //   }
-    // }
-
+    // step it UP!
     this.tocs += 1; 
 	},
  
-  // A function to load audio such that our parent class (the system) inherits 
-  // data from the audio buffer and distrubutes said data to things like our analyser, 
-  // i.e. this.analyser. 
+  /* 
+    A function to load audio such that our parent class (the system) inherits 
+    data from the audio buffer and distrubutes said data to things like our analyser, 
+    i.e. this.analyser. 
+  */
+
 	audioloadfcn: async function( buffer ) {
     this.channel0 = buffer.getChannelData(0);
     // this.channel1 = buffer.getChannelData(1);
@@ -542,10 +343,6 @@ AFRAME.registerSystem('musicvr',{
     this.source.loop = true;
     this.source.start()
     this.source.connect(this.analyser);
-    // this.filter.connect(this.gainNode);
-    // this.gainNode.connect(this.analyser); 
-    // filter.connect(analyser)
-    // source.disconnect(this.context.destination);
     this.analyser.connect(this.context.destination);
     this.analyser.fftSize = fftSize; 
     this.analyser.smoothingTimeConstant = 0.0;
@@ -555,14 +352,16 @@ AFRAME.registerSystem('musicvr',{
     this.fftCount   = this.analyser.frequencyBinCount;  
     this.playing    = true; 
 
-    // fade intro text: 
+    // fade intro text when music begins playing: 
     var introText = this.sceneEl.querySelector('#introtext'); 
     introText.setAttribute('animation__introfade',{property:'text.opacity',to:0.2,dur:800,delay:0,easing:'easeOutSine'})
   }, 
 
+  /*
+    A function that workd with animations. Once the note group fades to completion, 
+    we hide the line. That way things will appear in greater sychrony...a good thing!
+  */
 
-  // A function that workd with animations. Once the note group fades to completion, 
-  // we hide the line. That way things will appear in greater sychrony...a good thing!
   animator: function(e){
     console.log(e.detail.name);
     if(e.detail.name == 'animation__introfade'){
@@ -572,12 +371,12 @@ AFRAME.registerSystem('musicvr',{
     else if(e.detail.name == 'animation__slicefade'){
       // Which note is fading away; 
       var target_class = "." + e.target.getAttribute('class');
-      // Hid away the waveform line
-      console.log('faded'); 
+      // Hide away the waveform line
       this.sceneEl.querySelector('#stringgroup').querySelector(target_class).setAttribute('visible',false); 
     }
   }
-}); 
+
+}); // END OF SYSTEM COMPONENT
 
 /*********************************************
 	SOME UTILITY FUNCTIONS IN THE CELLAR HERE
@@ -1010,42 +809,4 @@ function typedConcat(arr1,arr2){
   return c
 }
 
-
-// Particle Stuff: 
-
-    // var particleObject = {}; 
-    // particleObject.preset = 'default'; 
-    // particleObject.texture = "./assets/particle.jpg"
-    // particleObject.positionSpread = {x:10,y:10,z:0}; 
-    // particleObject.velocityValue = {x:5,y:5,z:0}; 
-    // particleObject.velocitySpread = {x:10,y:10,z:0};;  
-    // particleObject.rotationAxis = 'x'; 
-    // particleObject.accelerationValue = {x:10,y:10,z:0}; 
-    // particleObject.accelerationSpread = {x:-10,y:-10,z:0}; 
-    // particleObject.type = 3; 
-    // particleObject.rotationAngleSpread = Math.PI/2; 
-    // particleObject.color = 'red';
-
-    // // Trying the sprite object: 
-    // var spriteObject = {}; 
-    // spriteObject.texture = "./assets/particle.jpg"; 
-    // spriteObject.radialType = "circlexy"; 
-    // spriteObject.color = 'red';
-    // spriteObject.radialPosition = "11.0";
-    // spriteObject.spawnRate = "20.0";  
-    // spriteObject.radialAcceleration = "0.08"; 
-    // spriteObject.particleSize = "500.0"; 
-    // spriteObject.lifeTime = "10"; 
-
-        // Making a particle system: This should be neat: 
-    // var particleSystem = document.createElement('a-entity'); 
-    // particleSystem.setAttribute('particle-system',particleObject);
-    // // particleSystem.setAttribute('sprite-particles',spriteObject); 
-    // particleSystem.setAttribute('geometry',{primitive:'torus',radius:7}); 
-    // particleSystem.setAttribute('material',{color:'black',transparent:true,opacity:0});  
-    // particleSystem.setAttribute('animation',{property:'rotation',to:{x:0,y:0,z:-360},dur:beatsInFourS,loop:true,easing:'linear'})
-    // particleSystem.setAttribute('animation_rad',{property:'geometry.radius',to:8,from:7,dur:beatsInFourS/4,loop:true,easing:'linear',dir:'alternate'})
-    // particleSystem.setAttribute('id','particleSystem'); 
-    // // We are going to attached our particle system to a ring: 
-    // this.el.appendChild(particleSystem); 
 

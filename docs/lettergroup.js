@@ -1,11 +1,22 @@
-// Our group of note 'letters'
+/*******
+	Part of MUSICVR, a web-based music VR experience. I'm viewing this, at least for now, as a 
+	music education tool!
+
+	Author: Matthew Ellis 
+	   
+	All rights reserved, 2019. 
+
+  This script specifies a group of note 'letters'. A cirle of letters that signify the musical notes, e.g. C! 
+ *******/
+
+// All letter components will be accumulated in this group, called 'lettergroup':
 AFRAME.registerComponent('lettergroup',{
-	// schema? 
+	// We loop through some data below, let's give it some data to loop though, a toneInfo array (which is filled in main.js). 
 	schema: {
 		toneInfo:{default:[]}, 
 	},
 	init: async function(){
-		// Using toneinfo, let's make our thing:
+		// looping through toneInfo array, making our circle of letters: 
 		for(let j = 0; j<this.data.toneInfo.length; j++){
 			var textEl = document.createElement('a-entity'); 
 			textEl.setAttribute('letter-component',{info:this.data.toneInfo[j]}); 
@@ -18,6 +29,7 @@ AFRAME.registerComponent('lettergroup',{
 
 // A component for the individual letters: 
 AFRAME.registerComponent('letter-component',{
+	// the detected field is used to toggle the visibility/opacity of a given note. It's updated in main.js as the song progresses. 
 	schema:{
 		info:{default:{}},
 		detected:{default:false},
@@ -25,7 +37,7 @@ AFRAME.registerComponent('letter-component',{
 	init: function(){ 
 	  var value = this.data.info.text; 
 	  var textEl = document.createElement('a-entity');
-	  // Loop through attribute keys and assign them to 
+	  // Use the data in toneInfo to make some letters for each note! (and color/position them accordingly!)
 	  this.el.setAttribute('geometry',{primitive:'plane',height:'auto',width:'auto'}); 
 	  this.el.setAttribute('material',{color:'#000',transparent:'true',opacity:0.2}); 
 	  this.el.setAttribute('text',{value:value,color:this.data.info.color,side:'double',align:'center',baseline:'center',font:'dejavu',wrapCount:value.length+2,transparent:true,opacity:0.25});;  
@@ -39,26 +51,3 @@ AFRAME.registerComponent('letter-component',{
 	}
 }); 
 
-
-// make a component for each textEl: 
-
-// AFRAME.registerComponent('notetext',{
-// 	init: function(){
-// 		//
-// 		console.log('text init');
-// 		console.log(this);
-// 	}, 
-// 	update: async function(){
-// 		this.getBox = AFRAME.utils.bind(this.getBox, this)
-// 		console.log('text update'); 
-// 		var obj =  await this.el.object3D;
-// 		var child = await obj.children[0]; 
-// 		console.log(child); 
-// 		var boxx = await this.getBox(child); 
-// 		console.log(boxx);
-// 	}, 
-// 	getBox: async function(object){
-//     var bbox = await new THREE.Box3().setFromObject(object);
-//     return bbox;
-//   }
-// });
